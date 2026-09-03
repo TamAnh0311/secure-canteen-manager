@@ -4,27 +4,24 @@ import { Repository, DataSource, EntityManager } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 import { MenuService } from '../menu.service';
 import { MenuItem } from '../menu-item.entity';
-import { ThresholdConfigService } from '../../config/threshold-config.service';
 import { CreateMenuItemDto } from '../dto/create-menu-item.dto';
 import { UpdateMenuItemDto } from '../dto/update-menu-item.dto';
 import { MAX_VND } from '../../common/numeric.transformer';
 import { MenuItemCategory } from '../menu-item-category.enum';
 
 // ---------------------------------------------------------------------------
-// In-memory MenuItem store + repo/dataSource/threshold doubles.
+// In-memory MenuItem store + repo/dataSource doubles.
 //
 // The store keeps soft-deleted rows (isActive=false) physically present, exactly
-// like Postgres: there is no DeleteDateColumn — soft-delete just flips isActive.
-// nextPosition/nextCode therefore see every row, deleted or not, which is the
-// invariant under test (a freed position must never be handed out again).
+// like the production store: there is no DeleteDateColumn — soft-delete just flips
+// isActive. nextPosition/nextCode therefore see every row, deleted or not, which is
+// the invariant under test (a freed position must never be handed out again).
 // ---------------------------------------------------------------------------
 
 interface Doubles {
   svc: MenuService;
   repo: Repository<MenuItem>;
   store: MenuItem[];
-  setFormGenerated: (at: Date | null) => void;
-  setVersionedTemplateGenerated: (generated: boolean) => void;
 }
 
 function buildService(): Doubles {
@@ -60,15 +57,9 @@ function buildService(): Doubles {
     }),
   } as unknown as Repository<MenuItem>;
 
-  let roiGeneratedAt: Date | null = null;
-  let versionedTemplateGenerated = false;
-
   // Transaction double: runs the callback against an EntityManager that proxies
   // the same in-memory store, mirroring the production two-phase position writes.
   const em = {
-    query: jest.fn(async (sql: string) => sql.includes('AS generated')
-      ? [{ generated: roiGeneratedAt != null || versionedTemplateGenerated }]
-      : undefined),
     create: (_e: unknown, data: Partial<MenuItem>) => (repo.create as jest.Mock)(data),
     find: async (_e: unknown, opts?: { order?: { position?: 'ASC' | 'DESC' } }) =>
       (repo.find as jest.Mock)(opts),
@@ -83,30 +74,8 @@ function buildService(): Doubles {
     transaction: jest.fn(async (cb: (m: EntityManager) => Promise<unknown>) => cb(em)),
   } as unknown as DataSource;
 
-  const thresholdService = {
-    getRoi: jest.fn(async () => ({ roiTemplate: null, roiVersion: null, roiGeneratedAt })),
-  } as unknown as ThresholdConfigService;
-
-  const svc = new MenuService(repo, thresholdService, dataSource);
-  return {
-    svc,
-    repo,
-    store,
-    setFormGenerated: (at) => {
-      roiGeneratedAt = at;
-    },
-    setVersionedTemplateGenerated: (generated) => {
-      versionedTemplateGenerated = generated;
-    },
-  };
-}
-
-const LOCKED = 'MENU.LOCKED_AFTER_FORM';
-
-async function expectLocked(p: Promise<unknown>): Promise<void> {
-  const err = await p.catch((e: unknown) => e);
-  expect(err).toBeInstanceOf(BadRequestException);
-  expect((err as BadRequestException).getResponse()).toMatchObject({ code: LOCKED });
+  const svc = new MenuService(repo, dataSource);
+  return { svc, repo, store };
 }
 
 // ---------------------------------------------------------------------------
@@ -143,203 +112,11 @@ describe('MenuService.addItem — monotonic code + position', () => {
 });
 
 // ---------------------------------------------------------------------------
-// soft-delete then add — position/code never reused (money-critical)
-//
-// A printed checkbox at row N must always decode to the same menu item. If a
-// freed position were reused, a tick on that printed row would debit a different
-// dish than the one printed there.
-// ---------------------------------------------------------------------------
-
-describe('MenuService — positions/codes are monotonic and never reused', () => {
-  it('after soft-delete the new item takes the next free slot, not the freed one', async () => {
-    const { svc, store, setFormGenerated } = buildService();
-
-    await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD }); // pos 0, code 01
-    const b = await svc.addItem({ name: 'B', price: 1, category: MenuItemCategory.FOOD }); // pos 1, code 02
-    await svc.addItem({ name: 'C', price: 1, category: MenuItemCategory.FOOD }); // pos 2, code 03
-
-    setFormGenerated(new Date()); // form printed — lock the layout
-
-    await svc.removeItem(b.id); // soft-delete pos 1 (reserved blank slot)
-
-    const added = await svc.addItem({ name: 'D', price: 1, category: MenuItemCategory.FOOD });
-
-    expect(added.position).toBe(3); // NOT 1 — the freed slot stays reserved
-    expect(added.code).toBe('004'); // NOT 002 — codes are monotonic too
-
-    const deleted = store.find((m) => m.id === b.id)!;
-    expect(deleted.position).toBe(1); // position kept, still reserved
-    expect(deleted.isActive).toBe(false);
-  });
-
-  it('allows adding after the form is generated (appends beyond highest position)', async () => {
-    const { svc, setFormGenerated } = buildService();
-    await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD });
-    await svc.addItem({ name: 'B', price: 1, category: MenuItemCategory.FOOD });
-    setFormGenerated(new Date());
-
-    const c = await svc.addItem({ name: 'C', price: 1, category: MenuItemCategory.FOOD });
-    expect(c.position).toBe(2);
-    expect(c.code).toBe('003');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// assertCodesFitForm — code-width ceiling guard (money-safety)
-//
-// The scan form encodes each item's numeric code in a fixed 3-box field. A code
-// at or beyond the 3-digit ceiling cannot be written without truncation, which
-// would resolve a scanned line to the wrong item (wrong-item debit). Generating
-// a form in that state must be refused.
-// ---------------------------------------------------------------------------
-
-describe('MenuService.assertCodesFitForm — code-width ceiling', () => {
-  it('rejects when a code has reached the 3-digit ceiling', async () => {
-    const { svc, store } = buildService();
-    store.push({
-      id: 'big',
-      code: '1000',
-      name: 'Overflow',
-      price: 1,
-      position: 0,
-      isActive: true,
-    } as MenuItem);
-
-    const err = await svc.assertCodesFitForm().catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(BadRequestException);
-    expect((err as BadRequestException).getResponse()).toMatchObject({
-      code: 'MENU.CODE_WIDTH_EXCEEDED',
-    });
-  });
-
-  it('resolves while codes remain within 3 digits', async () => {
-    const { svc } = buildService();
-    await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD }); // code 001
-    await expect(svc.assertCodesFitForm()).resolves.toBeUndefined();
-  });
-
-  it('resolves at the 999 boundary (largest representable 3-digit code)', async () => {
-    const { svc, store } = buildService();
-    store.push({
-      id: 'max',
-      code: '999',
-      name: 'Edge',
-      price: 1,
-      position: 0,
-      isActive: true,
-    } as MenuItem);
-    await expect(svc.assertCodesFitForm()).resolves.toBeUndefined();
-  });
-
-  it('rejects a non-numeric code (cannot be written into numeric digit boxes)', async () => {
-    // A non-numeric code parses to NaN; a maxCode()>=ceiling guard would let it
-    // through silently. The form would then mis-decode the dish, so it must be
-    // refused before printing.
-    const { svc, store } = buildService();
-    store.push({
-      id: 'demo',
-      code: 'M001',
-      name: 'Demo',
-      price: 1,
-      position: 0,
-      isActive: true,
-    } as MenuItem);
-
-    const err = await svc.assertCodesFitForm().catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(BadRequestException);
-    expect((err as BadRequestException).getResponse()).toMatchObject({
-      code: 'MENU.CODE_WIDTH_EXCEEDED',
-    });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// reorder — locked after form generation
-// ---------------------------------------------------------------------------
-
-describe('MenuService.reorder', () => {
-  it('reorders when no form generated', async () => {
-    const { svc } = buildService();
-    const a = await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD });
-    const b = await svc.addItem({ name: 'B', price: 1, category: MenuItemCategory.FOOD });
-
-    const result = await svc.reorder([b.id, a.id]);
-    const byId = new Map(result.map((r) => [r.id, r.position]));
-    expect(byId.get(b.id)).toBe(0);
-    expect(byId.get(a.id)).toBe(1);
-  });
-
-  it('throws LOCKED_AFTER_FORM once the form is generated', async () => {
-    const { svc, setFormGenerated } = buildService();
-    const a = await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD });
-    const b = await svc.addItem({ name: 'B', price: 1, category: MenuItemCategory.FOOD });
-    setFormGenerated(new Date());
-
-    await expectLocked(svc.reorder([b.id, a.id]));
-  });
-});
-
-// ---------------------------------------------------------------------------
-// updateItem — name locked after form-gen; price/isActive always editable
-// ---------------------------------------------------------------------------
-
-describe('MenuService.updateItem', () => {
-  it('locks names after a versioned A5 template is activated on a fresh deployment', async () => {
-    const { svc, setVersionedTemplateGenerated } = buildService();
-    const item = await svc.addItem({ name: 'Rice', price: 5000, category: MenuItemCategory.FOOD });
-    setVersionedTemplateGenerated(true);
-    await expectLocked(svc.updateItem(item.id, { name: 'Renamed' }));
-  });
-
-  it('allows category edits even after the form is generated', async () => {
-    const { svc, setFormGenerated } = buildService();
-    const item = await svc.addItem({ name: 'Soap', price: 5000, category: MenuItemCategory.FOOD });
-    setFormGenerated(new Date());
-
-    const updated = await svc.updateItem(item.id, { category: MenuItemCategory.ESSENTIAL });
-    expect(updated.category).toBe(MenuItemCategory.ESSENTIAL);
-  });
-
-  it('updates price and isActive at any time', async () => {
-    const { svc } = buildService();
-    const a = await svc.addItem({ name: 'A', price: 5000, category: MenuItemCategory.FOOD });
-    const updated = await svc.updateItem(a.id, { price: 8000 } as UpdateMenuItemDto);
-    expect(updated.price).toBe(8000);
-  });
-
-  it('allows price/isActive edits even after the form is generated', async () => {
-    const { svc, setFormGenerated } = buildService();
-    const a = await svc.addItem({ name: 'A', price: 5000, category: MenuItemCategory.FOOD });
-    setFormGenerated(new Date());
-
-    const priced = await svc.updateItem(a.id, { price: 9000 } as UpdateMenuItemDto);
-    expect(priced.price).toBe(9000);
-    const toggled = await svc.updateItem(a.id, { isActive: false } as UpdateMenuItemDto);
-    expect(toggled.isActive).toBe(false);
-  });
-
-  it('allows a name edit before the form is generated', async () => {
-    const { svc } = buildService();
-    const a = await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD });
-    const renamed = await svc.updateItem(a.id, { name: 'A2' } as UpdateMenuItemDto);
-    expect(renamed.name).toBe('A2');
-  });
-
-  it('locks the name once the form is generated', async () => {
-    const { svc, setFormGenerated } = buildService();
-    const a = await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD });
-    setFormGenerated(new Date());
-
-    await expectLocked(svc.updateItem(a.id, { name: 'A2' } as UpdateMenuItemDto));
-  });
-});
-
-// ---------------------------------------------------------------------------
-// removeItem — soft-delete after form-gen, hard-delete + reindex before
+// removeItem — hard-delete + reindex (no form-lock in SQLite mode)
 // ---------------------------------------------------------------------------
 
 describe('MenuService.removeItem', () => {
-  it('hard-deletes and reindexes positions when no form generated', async () => {
+  it('hard-deletes and reindexes positions', async () => {
     const { svc, store } = buildService();
     const a = await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD }); // pos 0
     const b = await svc.addItem({ name: 'B', price: 1, category: MenuItemCategory.FOOD }); // pos 1
@@ -356,20 +133,59 @@ describe('MenuService.removeItem', () => {
     expect(store.find((m) => m.id === a.id)!.position).toBe(0);
     expect(store.find((m) => m.id === c.id)!.position).toBe(1);
   });
+});
 
-  it('soft-deletes (isActive=false, position kept) when the form is generated', async () => {
-    const { svc, store, setFormGenerated } = buildService();
-    const a = await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD }); // pos 0
-    const b = await svc.addItem({ name: 'B', price: 1, category: MenuItemCategory.FOOD }); // pos 1
-    setFormGenerated(new Date());
+// ---------------------------------------------------------------------------
+// reorder
+// ---------------------------------------------------------------------------
 
-    await svc.removeItem(b.id);
+describe('MenuService.reorder', () => {
+  it('reorders items correctly', async () => {
+    const { svc } = buildService();
+    const a = await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD });
+    const b = await svc.addItem({ name: 'B', price: 1, category: MenuItemCategory.FOOD });
 
-    const deleted = store.find((m) => m.id === b.id)!;
-    expect(deleted).toBeDefined(); // still physically present
-    expect(deleted.isActive).toBe(false);
-    expect(deleted.position).toBe(1); // position preserved, no reindex
-    expect(store.find((m) => m.id === a.id)!.position).toBe(0);
+    const result = await svc.reorder([b.id, a.id]);
+    const byId = new Map(result.map((r) => [r.id, r.position]));
+    expect(byId.get(b.id)).toBe(0);
+    expect(byId.get(a.id)).toBe(1);
+  });
+
+  it('throws REORDER_COUNT_MISMATCH when IDs count does not match item count', async () => {
+    const { svc } = buildService();
+    const a = await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD });
+    await expect(svc.reorder([])).rejects.toMatchObject({ response: { code: 'MENU.REORDER_COUNT_MISMATCH' } });
+    void a;
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateItem
+// ---------------------------------------------------------------------------
+
+describe('MenuService.updateItem', () => {
+  it('updates name, price, category, and isActive', async () => {
+    const { svc } = buildService();
+    const item = await svc.addItem({ name: 'Rice', price: 5000, category: MenuItemCategory.FOOD });
+
+    const updated = await svc.updateItem(item.id, { name: 'Rice+', price: 6000, isActive: false } as UpdateMenuItemDto);
+    expect(updated.name).toBe('Rice+');
+    expect(updated.price).toBe(6000);
+    expect(updated.isActive).toBe(false);
+  });
+
+  it('allows a name edit at any time', async () => {
+    const { svc } = buildService();
+    const a = await svc.addItem({ name: 'A', price: 1, category: MenuItemCategory.FOOD });
+    const renamed = await svc.updateItem(a.id, { name: 'A2' } as UpdateMenuItemDto);
+    expect(renamed.name).toBe('A2');
+  });
+
+  it('allows category edits', async () => {
+    const { svc } = buildService();
+    const item = await svc.addItem({ name: 'Soap', price: 5000, category: MenuItemCategory.FOOD });
+    const updated = await svc.updateItem(item.id, { category: MenuItemCategory.ESSENTIAL });
+    expect(updated.category).toBe(MenuItemCategory.ESSENTIAL);
   });
 });
 
@@ -385,27 +201,6 @@ describe('MenuService.listAll', () => {
 
     const list = await svc.listAll();
     expect(list.map((m) => m.position)).toEqual([0, 1]);
-  });
-});
-
-describe('MenuService.scannerCatalogueExport', () => {
-  it('returns stable code/name/active snapshots and a deterministic version', async () => {
-    const { svc, store } = buildService();
-    store.push(
-      { id: 'item-2', code: '002', position: 1, name: '  Pho  ', isActive: false } as MenuItem,
-      { id: 'item-1', code: '001', position: 0, name: 'Cơm', isActive: true } as MenuItem,
-    );
-
-    const first = await svc.scannerCatalogueExport();
-    const second = await svc.scannerCatalogueExport();
-
-    expect(first).toEqual(second);
-    expect(first.schemaVersion).toBe('scanner-catalogue-v1');
-    expect(first.items).toEqual([
-      { catalogueItemId: '001', name: 'Cơm', active: true },
-      { catalogueItemId: '002', name: 'Pho', active: false },
-    ]);
-    expect(first.version).toMatch(/^[0-9a-f]{64}$/);
   });
 });
 
@@ -435,8 +230,7 @@ describe('MenuService.getSummary', () => {
       createQueryBuilder: jest.fn(() => qb),
     } as unknown as DataSource;
     const repo = {} as unknown as Repository<MenuItem>;
-    const thresholdService = {} as unknown as ThresholdConfigService;
-    return new MenuService(repo, thresholdService, dataSource);
+    return new MenuService(repo, dataSource);
   }
 
   function tomorrowInDeployTz(): string {
@@ -463,7 +257,7 @@ describe('MenuService.getSummary', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Existing DTO price-validation coverage (unchanged behaviour)
+// DTO validation
 // ---------------------------------------------------------------------------
 
 describe('CreateMenuItemDto — price validation', () => {

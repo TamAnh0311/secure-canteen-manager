@@ -15,15 +15,14 @@ export class MenuItem {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  // Auto-generated label-only item code (monotonic, never reused, gaps allowed). Stable
-  // human reference for the item; never printed on the OMR sheet. Globally unique.
+  // Auto-generated item code (monotonic, never reused, gaps allowed). Stable
+  // human reference for the item. Globally unique.
   @Index('UQ_menu_items_code', { unique: true })
   @Column({ length: 20 })
   code!: string;
 
-  // Zero-based position; maps 1-to-1 to the printed checkbox row on the OMR sheet.
-  // Globally unique and never reused after form generation so a printed checkbox index
-  // can never be remapped to a different item — a remap would debit the wrong dish.
+  // Zero-based display position. Globally unique and never reused so a freed slot
+  // can never be reassigned to a different item.
   @Index('UQ_menu_items_position', { unique: true })
   @Column({ type: 'int' })
   position!: number;
@@ -31,7 +30,7 @@ export class MenuItem {
   @Column({ length: 255 })
   name!: string;
 
-  // Selling price in integer VND. Shown on screen/kiosk/counter — never on the printed OMR sheet.
+  // Selling price in integer VND. Shown on screen/kiosk/counter.
   @Column({ type: 'bigint', default: 0, transformer: numericTransformer })
   price!: number;
 

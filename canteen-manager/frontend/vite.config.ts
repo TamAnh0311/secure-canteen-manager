@@ -15,13 +15,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // The backend serves routes at root (no global prefix); the client uses a
-      // `/api` base so production can be reverse-proxied behind one path. Strip
-      // the prefix here so dev requests hit the real root-level routes.
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ''),
       },
     },
   },

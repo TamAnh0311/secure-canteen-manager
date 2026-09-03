@@ -1,0 +1,64 @@
+[paths]
+database = "./var/state/order-scanner.sqlite3"
+spool = "./var/spool"
+artifacts = "./var/artifacts"
+inbox = "./scanner-inbox"
+# Omit this key to use the SQL migrations bundled in the installed package.
+
+[service]
+workers = 1
+sqlite_busy_timeout_ms = 5000
+lease_seconds = 300
+recovery_interval_seconds = 30
+
+[limits]
+max_source_bytes = 52428800
+max_pages = 100
+max_pixels_per_page = 50000000
+room_code_max_length = 4
+quantity_max = 999
+# Provisional until the callback consumer approves payload limits.
+callback_payload_max_bytes = 524288
+candidate_limit = 5
+document_code_pattern = '\d{6}'
+room_code_pattern = '[A-Za-z0-9]{1,4}'
+
+[scanner]
+allowed_extensions = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".pdf"]
+staging_suffixes = [".part", ".partial", ".tmp"]
+# Configure only when the scanner creates a sidecar after closing the source.
+# ready_suffix = ".ready"
+stable_observations = 3
+stable_seconds = 10
+minimum_age_seconds = 10
+poll_interval_seconds = 3
+decode_timeout_seconds = 30
+decode_memory_mb = 512
+pdf_dpi = 300
+
+[recognition]
+enabled = true
+auto_accept_enabled = true
+model_name = "latin_PP-OCRv5_mobile_rec"
+cpu_threads = 4
+minimum_item_score = 0.82
+minimum_item_margin = 0.08
+catalogue_path = "scanner-catalogue.json"
+
+[callback]
+url = 'http://localhost:3000/webhooks/order-scanner'
+token_env = "SCANNER_CALLBACK_TOKEN"
+artifact_token_env = "SCANNER_ARTIFACT_TOKEN"
+
+[versions]
+config_schema = '1'
+callback_schema = '1.0-draft'
+template = 'ticket-v4'
+preprocessing = 'ticket-v4-provisional-v1'
+model = "paddleocr-latin-ppocrv5-mobile-rec-baseline"
+thresholds = "review-only-v1"
+catalogue = '57d252715a1f1a552692f597911b075b60b6a64f62adc93eea2579dd328e74c9'
+
+[retention]
+artifact_days = 30
+audit_days = 365

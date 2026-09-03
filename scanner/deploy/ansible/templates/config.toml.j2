@@ -1,0 +1,71 @@
+[paths]
+database = "{{ data_root }}/state/order-scanner.sqlite3"
+spool = "{{ data_root }}/spool"
+artifacts = "{{ data_root }}/artifacts"
+inbox = "{{ inbox_root }}"
+
+[service]
+workers = 1
+sqlite_busy_timeout_ms = 5000
+lease_seconds = 300
+recovery_interval_seconds = 30
+callback_poll_interval_seconds = 1.0
+max_job_attempts = 3
+disk_high_watermark_percent = 90
+disk_low_watermark_percent = 80
+
+[limits]
+max_source_bytes = 52428800
+max_pages = 100
+max_pixels_per_page = 50000000
+room_code_max_length = 4
+quantity_max = 999
+callback_payload_max_bytes = 524288
+candidate_limit = 5
+document_code_pattern = '\d{6}'
+room_code_pattern = '[A-Za-z0-9]{1,4}'
+
+[scanner]
+service_date_timezone = 'Asia/Ho_Chi_Minh'
+service_date_offset_days = 1
+allowed_extensions = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".pdf"]
+staging_suffixes = [".part", ".partial", ".tmp"]
+stable_observations = 3
+stable_seconds = 10
+minimum_age_seconds = 10
+poll_interval_seconds = 3
+decode_timeout_seconds = 30
+decode_memory_mb = 512
+pdf_dpi = 150
+
+[recognition]
+enabled = {{ recognition_enabled | bool | lower }}
+auto_accept_enabled = {{ recognition_auto_accept_enabled | bool | lower }}
+model_name = '{{ recognition_model_name }}'
+model_dir = '{{ recognition_model_dir }}'
+cpu_threads = {{ recognition_cpu_threads }}
+minimum_item_score = 0.82
+minimum_item_margin = 0.08
+
+[callback]
+url = '{{ callback_url }}'
+token_file = '{{ token_path }}'
+timeout_seconds = 10.0
+retry_base_seconds = 2.0
+retry_max_seconds = 300.0
+
+[api]
+enabled = false
+
+[versions]
+config_schema = '1'
+callback_schema = '1.0-draft'
+template = 'ticket-skm-v1'
+preprocessing = 'ticket-skm-v1'
+model = '{{ recognition_model_version }}'
+thresholds = 'review-only-v1'
+catalogue = 'unconfigured'
+
+[retention]
+artifact_days = 30
+audit_days = 365

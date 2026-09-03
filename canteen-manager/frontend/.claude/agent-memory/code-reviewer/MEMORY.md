@@ -1,0 +1,1 @@
+- [API prefix contract](project_api_prefix_contract.md) — frontend uses /api base, backend serves at root; proxy must strip /api, prod nginx currently doesn't

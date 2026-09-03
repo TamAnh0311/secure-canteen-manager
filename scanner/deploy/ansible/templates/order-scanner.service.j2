@@ -1,0 +1,26 @@
+[Unit]
+Description=Order scanner intake and processing service
+After=local-fs.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ service_user }}
+Group={{ service_group }}
+WorkingDirectory={{ app_source }}
+Environment=PYTHONTZPATH=/usr/share/zoneinfo
+Environment=PADDLE_PDX_CACHE_HOME={{ data_root }}/paddlex-cache
+ExecStart={{ app_source }}/.venv/bin/order-scanner serve --config {{ app_config_path }}
+Restart=on-failure
+RestartSec=10s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ data_root }}
+ReadOnlyPaths={{ app_source }} {{ config_dir }} {{ inbox_root }}
+UMask=0027
+TimeoutStopSec=45s
+
+[Install]
+WantedBy=multi-user.target

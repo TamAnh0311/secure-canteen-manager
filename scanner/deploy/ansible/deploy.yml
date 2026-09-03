@@ -1,0 +1,312 @@
+---
+- name: Deploy order scanner and authenticated SMB inbox
+  hosts: scanner
+  become: true
+  gather_facts: true
+
+  vars:
+    app_root: /opt/order-scanner
+    app_source: "{{ app_root }}/app"
+    config_dir: /etc/order-scanner
+    data_root: /var/lib/order-scanner
+    inbox_root: /srv/samba/order-scanner-inbox
+    service_user: order-scanner
+    service_group: order-scanner
+    samba_user: scanner-share
+    samba_share_name: order-scanner-inbox
+    smb_password: "{{ lookup('env', 'ORDER_SCANNER_SMB_PASSWORD') }}"
+    samba_allowed_networks:
+      - "{{ ansible_facts.default_ipv4.network }}/{{ ansible_facts.default_ipv4.prefix }}"
+    python_version: "3.13"
+    callback_url: "http://127.0.0.1:9/disabled"
+    app_config_path: "{{ config_dir }}/config.toml"
+    token_path: "{{ config_dir }}/callback-token"
+    recognition_enabled: true
+    recognition_auto_accept_enabled: false
+    recognition_cpu_threads: 1
+    recognition_model_name: PP-OCRv6_medium_rec
+    recognition_model_revision: edc19ca6890bedb7a68c055d21190b44fc1aaa00
+    recognition_model_version: tieubaoca-pp-ocrv6-medium-rec-vietnamese-edc19ca
+    recognition_model_dir: "{{ data_root }}/models/{{ recognition_model_version }}"
+    recognition_model_base_url: >-
+      https://huggingface.co/tieubaoca/pp-ocrv6-medium-rec-vietnamese/resolve/{{ recognition_model_revision }}
+    recognition_model_files:
+      - name: inference.json
+        checksum: sha256:3bd9cb6bd020ea3256d354cefbb68d38b120255393a2e461d7a107de306aa5a3
+      - name: inference.pdiparams
+        checksum: sha256:ebca3d052b80cff3c8f8e20ed3deda2fc7b41cb39fffcc30c68fdbd221b92704
+      - name: inference.yml
+        checksum: sha256:e26530feef43bbb3e11b8d4d46705eb0f65b149769bb88acf23a86f73c915ff6
+      - name: ppocr_keys.txt
+        checksum: sha256:14d4a90049336cab150902cc61b41dc44d80e7b42134c0401998652cd28aaf27
+
+  pre_tasks:
+    - name: Require Ubuntu target
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+          - ansible_facts.distribution == 'Ubuntu'
+        fail_msg: "This playbook targets Ubuntu/Debian-family systems."
+
+    - name: Require a supported CPU architecture
+      ansible.builtin.assert:
+        that: ansible_facts.architecture in ['x86_64', 'amd64']
+        fail_msg: "PaddleOCR baseline deployment requires Linux x86_64."
+
+  tasks:
+    - name: Install host packages
+      ansible.builtin.apt:
+        name:
+          - acl
+          - rsync
+          - samba
+          - smbclient
+          - curl
+          - ca-certificates
+          - build-essential
+          - tzdata
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create service group
+      ansible.builtin.group:
+        name: "{{ service_group }}"
+        system: true
+
+    - name: Create service user
+      ansible.builtin.user:
+        name: "{{ service_user }}"
+        group: "{{ service_group }}"
+        groups: "{{ service_group }}"
+        append: true
+        system: true
+        shell: /usr/sbin/nologin
+        home: "{{ app_root }}"
+        create_home: false
+
+    - name: Create Samba-only Unix user
+      ansible.builtin.user:
+        name: "{{ samba_user }}"
+        group: "{{ service_group }}"
+        system: true
+        shell: /usr/sbin/nologin
+        home: /nonexistent
+        create_home: false
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Install uv
+      ansible.builtin.shell: |
+        set -eu
+        curl --fail --location --silent --show-error https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh
+      args:
+        creates: /usr/local/bin/uv
+
+    - name: Create application and data directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "{{ app_root }}", owner: root, group: root, mode: '0755' }
+        - { path: "{{ app_source }}", owner: root, group: root, mode: '0755' }
+        - { path: "{{ config_dir }}", owner: root, group: "{{ service_group }}", mode: '0750' }
+        - { path: "{{ data_root }}", owner: "{{ service_user }}", group: "{{ service_group }}", mode: '0750' }
+        - { path: "{{ data_root }}/state", owner: "{{ service_user }}", group: "{{ service_group }}", mode: '0750' }
+        - { path: "{{ data_root }}/spool", owner: "{{ service_user }}", group: "{{ service_group }}", mode: '0750' }
+        - { path: "{{ data_root }}/artifacts", owner: "{{ service_user }}", group: "{{ service_group }}", mode: '0750' }
+        - { path: "{{ data_root }}/paddlex-cache", owner: "{{ service_user }}", group: "{{ service_group }}", mode: '0750' }
+        - { path: "{{ data_root }}/models", owner: root, group: "{{ service_group }}", mode: '0750' }
+        - { path: "{{ recognition_model_dir }}", owner: root, group: "{{ service_group }}", mode: '0750' }
+        - { path: "{{ inbox_root }}", owner: "{{ service_user }}", group: "{{ service_group }}", mode: '0770' }
+
+    - name: Copy application source directories
+      ansible.posix.synchronize:
+        src: "{{ playbook_dir }}/../../{{ item }}/"
+        dest: "{{ app_source }}/{{ item }}/"
+        delete: true
+        rsync_path: "sudo -n rsync"
+        rsync_opts:
+          - "--exclude=*.pyc"
+          - "--exclude=__pycache__"
+      loop:
+        - src
+        - migrations
+      notify: Restart order scanner
+
+    - name: Copy application manifests
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../{{ item }}"
+        dest: "{{ app_source }}/{{ item }}"
+        owner: root
+        group: root
+        mode: '0644'
+      loop:
+        - pyproject.toml
+        - uv.lock
+      notify: Restart order scanner
+
+    - name: Set application ownership
+      ansible.builtin.file:
+        path: "{{ app_source }}"
+        state: directory
+        recurse: true
+        owner: root
+        group: root
+        mode: u=rwX,go=rX
+
+    - name: Install locked Python runtime dependencies
+      ansible.builtin.command:
+        cmd: >-
+          /usr/local/bin/uv sync --frozen --no-dev --extra paddleocr
+          --python {{ python_version }}
+        chdir: "{{ app_source }}"
+      environment:
+        UV_PYTHON_INSTALL_DIR: "{{ app_root }}/python"
+
+    - name: Install pinned PP-OCRv6 model files
+      ansible.builtin.get_url:
+        url: "{{ recognition_model_base_url }}/{{ item.name }}"
+        dest: "{{ recognition_model_dir }}/{{ item.name }}"
+        checksum: "{{ item.checksum }}"
+        owner: root
+        group: "{{ service_group }}"
+        mode: '0640'
+        timeout: 120
+      loop: "{{ recognition_model_files }}"
+      notify: Restart order scanner
+
+    - name: Set virtualenv ownership
+      ansible.builtin.file:
+        path: "{{ app_source }}/.venv"
+        state: directory
+        recurse: true
+        owner: root
+        group: root
+        mode: u=rwX,go=rX
+
+    - name: Check existing callback token
+      ansible.builtin.stat:
+        path: "{{ token_path }}"
+      register: callback_token_stat
+
+    - name: Generate callback token on first install
+      ansible.builtin.set_fact:
+        callback_token: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=48') }}"
+      no_log: true
+      when: not callback_token_stat.stat.exists
+
+    - name: Install callback token
+      ansible.builtin.copy:
+        content: "{{ callback_token }}\n"
+        dest: "{{ token_path }}"
+        owner: "{{ service_user }}"
+        group: "{{ service_group }}"
+        mode: '0600'
+      no_log: true
+      when: not callback_token_stat.stat.exists
+
+    - name: Install service configuration
+      ansible.builtin.template:
+        src: config.toml.j2
+        dest: "{{ app_config_path }}"
+        owner: root
+        group: "{{ service_group }}"
+        mode: '0640'
+        backup: true
+      notify: Restart order scanner
+
+    - name: Install systemd unit
+      ansible.builtin.template:
+        src: order-scanner.service.j2
+        dest: /etc/systemd/system/order-scanner.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart order scanner
+
+    - name: Configure Samba account
+      ansible.builtin.shell: |
+        set -o pipefail
+        if pdbedit -L 2>/dev/null | cut -d: -f1 | grep -Fxq '{{ samba_user }}'; then
+          printf '%s\n%s\n' "$SMB_PASSWORD" "$SMB_PASSWORD" | smbpasswd -s '{{ samba_user }}'
+        else
+          printf '%s\n%s\n' "$SMB_PASSWORD" "$SMB_PASSWORD" | smbpasswd -s -a '{{ samba_user }}'
+        fi
+      args:
+        executable: /bin/bash
+      environment:
+        SMB_PASSWORD: "{{ smb_password }}"
+      no_log: true
+      changed_when: true
+      when: smb_password | length > 0
+      tags: [samba]
+
+    - name: Check existing Samba account
+      ansible.builtin.shell: >-
+        set -o pipefail && pdbedit -L 2>/dev/null | cut -d: -f1 |
+        grep -Fxq '{{ samba_user }}'
+      args:
+        executable: /bin/bash
+      register: samba_account_check
+      changed_when: false
+      failed_when: false
+      tags: [samba]
+
+    - name: Require a Samba password on first install
+      ansible.builtin.assert:
+        that: samba_account_check.rc == 0 or smb_password | length > 0
+        fail_msg: >-
+          Set ORDER_SCANNER_SMB_PASSWORD for the first deployment or an
+          intentional Samba password rotation.
+      tags: [samba]
+
+    - name: Install Samba configuration
+      ansible.builtin.template:
+        src: smb.conf.j2
+        dest: /etc/samba/smb.conf
+        owner: root
+        group: root
+        mode: '0644'
+        validate: 'testparm -s %s'
+      notify: Restart Samba
+      tags: [samba]
+
+    - name: Allow Samba through UFW when it is active
+      community.general.ufw:
+        rule: allow
+        port: "{{ item.1.port }}"
+        proto: "{{ item.1.proto }}"
+        from_ip: "{{ item.0 }}"
+      loop: "{{ samba_allowed_networks | product(samba_ports) | list }}"
+      vars:
+        samba_ports:
+          - { port: '445', proto: tcp }
+      when: ansible_facts.services['ufw.service'] is defined and ansible_facts.services['ufw.service'].state == 'running'
+      tags: [samba]
+
+    - name: Reload systemd and enable services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+      loop:
+        - order-scanner.service
+        - smbd.service
+
+  handlers:
+    - name: Restart order scanner
+      ansible.builtin.systemd:
+        name: order-scanner.service
+        state: restarted
+        daemon_reload: true
+
+    - name: Restart Samba
+      ansible.builtin.systemd:
+        name: smbd.service
+        state: restarted

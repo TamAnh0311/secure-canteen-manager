@@ -1,0 +1,95 @@
+[paths]
+database = "./var/state/order-scanner.sqlite3"
+spool = "./var/spool"
+artifacts = "./var/artifacts"
+inbox = "./scanner-inbox"
+# Omit this key to use the SQL migrations bundled in the installed package.
+
+[service]
+workers = 1
+sqlite_busy_timeout_ms = 5000
+lease_seconds = 300
+recovery_interval_seconds = 30
+callback_poll_interval_seconds = 1.0
+max_job_attempts = 3
+disk_high_watermark_percent = 90
+disk_low_watermark_percent = 80
+
+[limits]
+max_source_bytes = 52428800
+max_pages = 100
+max_pixels_per_page = 50000000
+room_code_max_length = 4
+quantity_max = 999
+# Provisional until the callback consumer approves payload limits.
+callback_payload_max_bytes = 524288
+candidate_limit = 5
+document_code_pattern = '\d{6}'
+room_code_pattern = '[A-Za-z0-9]{1,4}'
+
+[scanner]
+# Service date is assigned once when a source file is admitted. The default
+# offset is next-day delivery in the facility timezone.
+service_date_timezone = 'Asia/Saigon'
+service_date_offset_days = 1
+allowed_extensions = [".png", ".jpg", ".jpeg", ".tif", ".tiff", ".pdf"]
+staging_suffixes = [".part", ".partial", ".tmp"]
+# Configure only when the scanner creates a sidecar after closing the source.
+# ready_suffix = ".ready"
+stable_observations = 3
+stable_seconds = 10
+minimum_age_seconds = 10
+poll_interval_seconds = 3
+decode_timeout_seconds = 30
+decode_memory_mb = 512
+# Interim Apple Notes PDF render setting. Alignment still produces the canonical
+# 300-DPI ticket raster.
+pdf_dpi = 150
+
+[recognition]
+# Runs on Linux x86_64 or macOS arm64 CPU, not on the iPhone. Install with:
+# uv sync --extra paddleocr
+enabled = false
+# Keep false until writer-disjoint benchmark and calibration gates are approved.
+auto_accept_enabled = false
+model_name = 'latin_PP-OCRv5_mobile_rec'
+cpu_threads = 4
+minimum_item_score = 0.82
+minimum_item_margin = 0.08
+# Omit model_dir to let PaddleOCR download/cache the baseline model.
+# model_dir = '/opt/order-scanner/models/latin_PP-OCRv5_mobile_rec'
+# Item names remain needs_review until an approved catalogue is configured.
+# catalogue_path = '/etc/order-scanner/catalogue.json'
+
+[callback]
+url = 'https://callback.example.invalid/v1/order-results'
+token_env = 'ORDER_SCANNER_CALLBACK_TOKEN'
+# timeout_seconds = 10.0
+# retry_base_seconds = 2.0
+# retry_max_seconds = 300.0
+# Optional and intentionally separate from the outbound callback credential.
+# artifact_token_env = 'ORDER_SCANNER_ARTIFACT_TOKEN'
+
+[api]
+# Enable only with a callback artifact token and either local TLS files or a
+# trusted reverse proxy that terminates TLS before this process.
+enabled = false
+bind_host = '127.0.0.1'
+port = 8443
+public_base_url = 'https://scanner.example.test:8443'
+# tls_cert_file = '/etc/order-scanner/tls/cert.pem'
+# tls_key_file = '/etc/order-scanner/tls/key.pem'
+# tls_terminated_upstream = true
+
+[versions]
+config_schema = '1'
+callback_schema = '1.0-draft'
+template = 'ticket-v4'
+preprocessing = 'ticket-v4-provisional-v1'
+model = 'paddleocr-latin-ppocrv5-mobile-rec-baseline'
+thresholds = 'review-only-v1'
+catalogue = 'unconfigured'
+
+[retention]
+artifact_days = 30
+audit_days = 365

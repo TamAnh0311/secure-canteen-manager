@@ -1,0 +1,185 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "55433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - canteen
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # One-shot schema migration. The backend ships with migrationsRun:false (explicit,
+  # controlled migrations), so on a fresh box the schema must be applied before the
+  # backend starts or it crash-loops on missing tables. This runs the compiled
+  # migrations once and exits; migration:run is idempotent (already-applied are skipped).
+  migrate:
+    image: canteen-backend:local
+    restart: "no"
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    command: ["npx", "typeorm", "migration:run", "-d", "dist/database/data-source.js"]
+    networks:
+      - canteen
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: canteen-backend:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: ${BACKEND_PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL}
+      # Persist raw scan images on a named volume so PII + pending sheets
+      # survive container recreate (otherwise lost, and boot recovery can't re-OMR).
+      SCAN_STORAGE_DIR: /app/data/scans
+      SCAN_RETENTION_DAYS: '30'
+      SCAN_WORKFLOW_MODE: ${SCAN_WORKFLOW_MODE:-legacy_omr}
+      SCANNER_SERVICE_DATE_MAX_PAST_DAYS: ${SCANNER_SERVICE_DATE_MAX_PAST_DAYS:-}
+      SCANNER_SERVICE_DATE_MAX_FUTURE_DAYS: ${SCANNER_SERVICE_DATE_MAX_FUTURE_DAYS:-}
+      SCANNER_CALLBACK_TOKEN: ${SCANNER_CALLBACK_TOKEN:-}
+      SCANNER_ARTIFACT_TOKEN: ${SCANNER_ARTIFACT_TOKEN:-}
+      SCANNER_ARTIFACT_ORIGIN: ${SCANNER_ARTIFACT_ORIGIN:-}
+      SCANNER_WEBHOOK_MAX_PAYLOAD_BYTES: ${SCANNER_WEBHOOK_MAX_PAYLOAD_BYTES:-524288}
+      SCANNER_ARTIFACT_MAX_BYTES: ${SCANNER_ARTIFACT_MAX_BYTES:-10485760}
+      SCANNER_ARTIFACT_TIMEOUT_MS: ${SCANNER_ARTIFACT_TIMEOUT_MS:-15000}
+      SCANNER_ARTIFACT_RETENTION_DAYS: ${SCANNER_ARTIFACT_RETENTION_DAYS:-}
+      OMR_OPERATIONAL_FORM_MODE: ${OMR_OPERATIONAL_FORM_MODE:-issued}
+      OMR_OPERATIONAL_FORM_GENERATION: ${OMR_OPERATIONAL_FORM_GENERATION:-issued-v1}
+    ports:
+      # Host diagnostics remain possible, but LAN clients must enter through
+      # frontend Nginx so kiosk rate limiting sees a trustworthy client IP.
+      - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
+    volumes:
+      - scan_store:/app/data/scans
+    networks:
+      - canteen
+    depends_on:
+      postgres:
+        condition: service_healthy
+      # Schema must exist before the backend boots (it does not self-migrate).
+      migrate:
+        condition: service_completed_successfully
+      # Ordering only (not health-gated): the backend serves /health and boots
+      # fine before OMR is ready; it only needs OMR when a scan is processed.
+      omr-service:
+        condition: service_started
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  omr-service:
+    build:
+      context: ../omr-service
+      dockerfile: Dockerfile
+      target: runtime
+    image: canteen-omr-service:local
+    restart: unless-stopped
+    # OMR is deliberately isolated from database, JWT, seed, and agent secrets.
+    # Only recognition/rendering configuration crosses this container boundary.
+    environment:
+      OMR_EMPTY_MAX: ${OMR_EMPTY_MAX:-0.30}
+      OMR_TICKED_MIN: ${OMR_TICKED_MIN:-0.70}
+      ICR_CONFIDENCE_THRESHOLD: ${ICR_CONFIDENCE_THRESHOLD:-0.85}
+      DIGIT_BOX_COUNT: ${DIGIT_BOX_COUNT:-6}
+      OMR_DPI: ${OMR_DPI:-300}
+      ONNX_MODEL_PATH: ${ONNX_MODEL_PATH:-models/mnist_digits.onnx}
+      HANDWRITING_MODEL_DIR: ${HANDWRITING_MODEL_DIR:-models/handwriting}
+      HANDWRITING_CONFIDENCE_THRESHOLD: ${HANDWRITING_CONFIDENCE_THRESHOLD:-0.25}
+      HANDWRITING_BLANK_INK_RATIO: ${HANDWRITING_BLANK_INK_RATIO:-0.008}
+      HANDWRITING_MAX_TOKENS: ${HANDWRITING_MAX_TOKENS:-32}
+      FONTS_DIR: ${FONTS_DIR:-fonts}
+    expose:
+      - "8000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - canteen
+    healthcheck:
+      test:
+        - "CMD"
+        - "python3"
+        - "-c"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    image: canteen-frontend:local
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - canteen
+    # nginx proxies /api → backend; wait for it to be healthy so the kiosk's
+    # first page load doesn't 502.
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  scan-agent:
+    build:
+      context: ../scan-agent
+      dockerfile: Dockerfile
+    image: canteen-scan-agent:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SERVER_URL: http://frontend/api
+      INBOX_DIR: /inbox
+      SPOOL_DIR: /spool/pending
+      ARCHIVE_DIR: /spool/archive
+      QUARANTINE_DIR: /spool/quarantine
+    networks:
+      - canteen
+    volumes:
+      - ${SCAN_INBOX_DIR:-./scan-inbox}:/inbox
+      - scan_spool:/spool
+    # The agent pushes spooled scans to the backend — start it only once the
+    # backend can accept uploads.
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  scan_spool:
+  scan_store:
+
+networks:
+  canteen:
+    driver: bridge

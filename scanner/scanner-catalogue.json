@@ -1,0 +1,356 @@
+{
+  "created_at": "2026-08-12T00:00:00Z",
+  "items": [
+    {
+      "aliases": [
+        "Mi tom Hao Hao"
+      ],
+      "canonical_name": "Mì tôm Hảo Hảo",
+      "item_id": "001"
+    },
+    {
+      "aliases": [
+        "Xa phong Lifebuoy"
+      ],
+      "canonical_name": "Xà phòng Lifebuoy",
+      "item_id": "002"
+    },
+    {
+      "aliases": [
+        "Nuoc suoi 500ml"
+      ],
+      "canonical_name": "Nước suối 500ml",
+      "item_id": "003"
+    },
+    {
+      "aliases": [
+        "Kem danh rang P/S"
+      ],
+      "canonical_name": "Kem đánh răng P/S",
+      "item_id": "004"
+    },
+    {
+      "aliases": [
+        "Sua hop Vinamilk"
+      ],
+      "canonical_name": "Sữa hộp Vinamilk",
+      "item_id": "005"
+    },
+    {
+      "aliases": [
+        "Ban chai danh rang"
+      ],
+      "canonical_name": "Bàn chải đánh răng",
+      "item_id": "006"
+    },
+    {
+      "aliases": [
+        "Banh quy"
+      ],
+      "canonical_name": "Bánh quy",
+      "item_id": "007"
+    },
+    {
+      "aliases": [
+        "Dau goi goi"
+      ],
+      "canonical_name": "Dầu gội gói",
+      "item_id": "008"
+    },
+    {
+      "aliases": [
+        "Lac rang"
+      ],
+      "canonical_name": "Lạc rang",
+      "item_id": "009"
+    },
+    {
+      "aliases": [
+        "Khan mat"
+      ],
+      "canonical_name": "Khăn mặt",
+      "item_id": "010"
+    },
+    {
+      "aliases": [
+        "Banh mi ngot"
+      ],
+      "canonical_name": "Bánh mì ngọt",
+      "item_id": "011"
+    },
+    {
+      "aliases": [
+        "Giay ve sinh"
+      ],
+      "canonical_name": "Giấy vệ sinh",
+      "item_id": "012"
+    },
+    {
+      "aliases": [
+        "Sua dau nanh"
+      ],
+      "canonical_name": "Sữa đậu nành",
+      "item_id": "013"
+    },
+    {
+      "aliases": [
+        "Bot giat goi"
+      ],
+      "canonical_name": "Bột giặt gói",
+      "item_id": "014"
+    },
+    {
+      "aliases": [
+        "Keo lac"
+      ],
+      "canonical_name": "Kẹo lạc",
+      "item_id": "015"
+    },
+    {
+      "aliases": [
+        "Nuoc rua tay"
+      ],
+      "canonical_name": "Nước rửa tay",
+      "item_id": "016"
+    },
+    {
+      "aliases": [
+        "Banh gao"
+      ],
+      "canonical_name": "Bánh gạo",
+      "item_id": "017"
+    },
+    {
+      "aliases": [
+        "Luoc nhua"
+      ],
+      "canonical_name": "Lược nhựa",
+      "item_id": "018"
+    },
+    {
+      "aliases": [
+        "Ca phe hoa tan"
+      ],
+      "canonical_name": "Cà phê hòa tan",
+      "item_id": "019"
+    },
+    {
+      "aliases": [
+        "Bam mong tay"
+      ],
+      "canonical_name": "Bấm móng tay",
+      "item_id": "020"
+    },
+    {
+      "aliases": [
+        "Tra tui loc"
+      ],
+      "canonical_name": "Trà túi lọc",
+      "item_id": "021"
+    },
+    {
+      "aliases": [
+        "Dep nhua"
+      ],
+      "canonical_name": "Dép nhựa",
+      "item_id": "022"
+    },
+    {
+      "aliases": [
+        "Duong goi"
+      ],
+      "canonical_name": "Đường gói",
+      "item_id": "023"
+    },
+    {
+      "aliases": [
+        "Ao lot cotton"
+      ],
+      "canonical_name": "Áo lót cotton",
+      "item_id": "024"
+    },
+    {
+      "aliases": [
+        "Muoi lac"
+      ],
+      "canonical_name": "Muối lạc",
+      "item_id": "025"
+    },
+    {
+      "aliases": [
+        "Quan lot cotton"
+      ],
+      "canonical_name": "Quần lót cotton",
+      "item_id": "026"
+    },
+    {
+      "aliases": [
+        "Cha bong"
+      ],
+      "canonical_name": "Chà bông",
+      "item_id": "027"
+    },
+    {
+      "aliases": [
+        "Khau trang vai"
+      ],
+      "canonical_name": "Khẩu trang vải",
+      "item_id": "028"
+    },
+    {
+      "aliases": [
+        "Ca hop"
+      ],
+      "canonical_name": "Cá hộp",
+      "item_id": "029"
+    },
+    {
+      "aliases": [
+        "But bi xanh"
+      ],
+      "canonical_name": "Bút bi xanh",
+      "item_id": "030"
+    },
+    {
+      "aliases": [
+        "Thit hop"
+      ],
+      "canonical_name": "Thịt hộp",
+      "item_id": "031"
+    },
+    {
+      "aliases": [
+        "Vo 100 trang"
+      ],
+      "canonical_name": "Vở 100 trang",
+      "item_id": "032"
+    },
+    {
+      "aliases": [
+        "Ruoc ca"
+      ],
+      "canonical_name": "Ruốc cá",
+      "item_id": "033"
+    },
+    {
+      "aliases": [
+        "Phong bi thu"
+      ],
+      "canonical_name": "Phong bì thư",
+      "item_id": "034"
+    },
+    {
+      "aliases": [
+        "Banh da"
+      ],
+      "canonical_name": "Bánh đa",
+      "item_id": "035"
+    },
+    {
+      "aliases": [
+        "Pin tieu AA"
+      ],
+      "canonical_name": "Pin tiểu AA",
+      "item_id": "036"
+    },
+    {
+      "aliases": [
+        "Me rang"
+      ],
+      "canonical_name": "Mè rang",
+      "item_id": "037"
+    },
+    {
+      "aliases": [
+        "Kim chi may"
+      ],
+      "canonical_name": "Kim chỉ may",
+      "item_id": "038"
+    },
+    {
+      "aliases": [
+        "Nuoc tang luc"
+      ],
+      "canonical_name": "Nước tăng lực",
+      "item_id": "039"
+    },
+    {
+      "aliases": [
+        "Tui dung do"
+      ],
+      "canonical_name": "Túi đựng đồ",
+      "item_id": "040"
+    },
+    {
+      "aliases": [
+        "Banh dau xanh"
+      ],
+      "canonical_name": "Bánh đậu xanh",
+      "item_id": "041"
+    },
+    {
+      "aliases": [
+        "Coc nhua"
+      ],
+      "canonical_name": "Cốc nhựa",
+      "item_id": "042"
+    },
+    {
+      "aliases": [
+        "Hat dieu rang"
+      ],
+      "canonical_name": "Hạt điều rang",
+      "item_id": "043"
+    },
+    {
+      "aliases": [
+        "Thia nhua"
+      ],
+      "canonical_name": "Thìa nhựa",
+      "item_id": "044"
+    },
+    {
+      "aliases": [
+        "Ngu coc goi"
+      ],
+      "canonical_name": "Ngũ cốc gói",
+      "item_id": "045"
+    },
+    {
+      "aliases": [
+        "Hop dung xa phong"
+      ],
+      "canonical_name": "Hộp đựng xà phòng",
+      "item_id": "046"
+    },
+    {
+      "aliases": [
+        "Banh cracker"
+      ],
+      "canonical_name": "Bánh cracker",
+      "item_id": "047"
+    },
+    {
+      "aliases": [
+        "Guong nhua nho"
+      ],
+      "canonical_name": "Gương nhựa nhỏ",
+      "item_id": "048"
+    },
+    {
+      "aliases": [
+        "Nho kho"
+      ],
+      "canonical_name": "Nho khô",
+      "item_id": "049"
+    },
+    {
+      "aliases": [
+        "Day phoi quan ao"
+      ],
+      "canonical_name": "Dây phơi quần áo",
+      "item_id": "050"
+    }
+  ],
+  "version": "57d252715a1f1a552692f597911b075b60b6a64f62adc93eea2579dd328e74c9"
+}

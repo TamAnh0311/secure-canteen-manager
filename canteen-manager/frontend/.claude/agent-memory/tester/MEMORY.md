@@ -1,0 +1,1 @@
+- [Test environment: backend e2e needs explicit DATABASE_URL and .env.test source](test-environment-backend-e2e.md) — critical for running kiosk tests

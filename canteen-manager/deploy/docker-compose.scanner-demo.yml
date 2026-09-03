@@ -1,0 +1,11 @@
+services:
+  backend:
+    environment:
+      SCAN_WORKFLOW_MODE: scanner_webhook
+      NODE_EXTRA_CA_CERTS: /etc/ssl/certs/order-scanner-demo-ca.pem
+      SCANNER_ARTIFACT_ORIGIN: https://host.docker.internal:8443
+    volumes:
+      - type: bind
+        source: ${SCANNER_DEMO_CA_CERT:?Set SCANNER_DEMO_CA_CERT to the generated demo CA certificate}
+        target: /etc/ssl/certs/order-scanner-demo-ca.pem
+        read_only: true

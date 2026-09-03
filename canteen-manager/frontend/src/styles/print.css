@@ -1,0 +1,34 @@
+@media print {
+  /* Hide chrome: shell topbar, brand bar, sidenav, and any element with .no-print */
+  .no-print {
+    display: none !important;
+  }
+
+  /* The printable region fills the page cleanly */
+  .print-area {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    border-radius: 0 !important;
+  }
+
+  /* Flatten the app grid so only main content renders */
+  body,
+  #root {
+    background: #fff !important;
+  }
+
+  /* One delivery voucher per page; the last sheet keeps the trailing blank page away */
+  .voucher-sheet {
+    break-after: page;
+  }
+  .voucher-sheet:last-child {
+    break-after: auto;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+}

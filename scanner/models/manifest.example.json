@@ -1,0 +1,21 @@
+{
+  "catalogue_version": "catalogue-unconfigured",
+  "catalogue_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "cpu_requirements": {
+    "architecture": "x86_64",
+    "instruction_sets": []
+  },
+  "created_at": "2026-08-04T00:00:00Z",
+  "input_contract": "ticket-v4/item-line-grayscale-v1",
+  "model_id": "replace-with-benchmarked-model-id",
+  "output_contract": "unicode-nbest-v1",
+  "precision": "fp32",
+  "runtime": "onnxruntime-cpu",
+  "schema_version": "order-scanner-model-manifest-v1",
+  "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "thresholds": {
+    "minimum_candidate_margin": null,
+    "minimum_item_score": null
+  },
+  "version": "unselected"
+}

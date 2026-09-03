@@ -15,5 +15,5 @@
     "incremental": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/scans/**/*", "src/omr-forms/**/*", "src/omr/**/*", "src/config/threshold-config.*", "src/config/scan-workflow-mode.*"]
+  "exclude": ["node_modules", "dist", "src/scans/**/*", "src/omr-forms/**/*", "src/omr/**/*", "src/config/threshold-config.*", "src/config/scan-workflow-mode.*", "src/config/__tests__/threshold-config.*", "src/config/__tests__/scan-workflow-mode.*", "src/database/seeds/demo-seed.*", "src/main.spec.ts"]
 }

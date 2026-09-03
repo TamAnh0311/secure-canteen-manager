@@ -26,7 +26,7 @@ describe('MenuController', () => {
 
   it('delegates summary() to menuService.getSummary() with the query date', async () => {
     const h = harness();
-    const mockReq = { user: { id: 'op-1' } } as never;
+    const mockReq = { user: { id: 'op-1' } } as any;
     await h.controller.summary({ date: '2026-06-18' }, mockReq);
     expect(h.menuService.getSummary).toHaveBeenCalledWith('2026-06-18', mockReq.user);
   });

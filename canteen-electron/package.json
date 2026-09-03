@@ -1,0 +1,25 @@
+{
+  "name": "canteen-electron",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build:backend": "cd ../canteen-manager/backend && npm run build",
+    "build:frontend": "cd ../canteen-manager/frontend && npm run build",
+    "build:electron": "tsc -p tsconfig.json",
+    "build": "npm run build:backend && npm run build:frontend && npm run build:electron",
+    "start": "electron dist/main/index.js",
+    "dev": "npm run build:electron && electron dist/main/index.js",
+    "pack": "electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "electron-store": "^10.0.0"
+  },
+  "devDependencies": {
+    "electron": "^36.0.0",
+    "electron-builder": "^26.0.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

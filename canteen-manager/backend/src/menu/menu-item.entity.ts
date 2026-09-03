@@ -35,15 +35,15 @@ export class MenuItem {
   @Column({ type: 'bigint', default: 0, transformer: numericTransformer })
   price!: number;
 
-  @Column({ type: 'enum', enum: MenuItemCategory, enumName: 'menu_item_category_enum' })
+  @Column({ type: 'simple-enum', enum: MenuItemCategory })
   category!: MenuItemCategory;
 
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
   updatedAt!: Date;
 }

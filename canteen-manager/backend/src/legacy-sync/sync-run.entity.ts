@@ -18,16 +18,16 @@ export class SyncRun {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'started_at', type: 'timestamptz' })
+  @Column({ name: 'started_at', type: 'datetime' })
   startedAt!: Date;
 
-  @Column({ name: 'finished_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'finished_at', type: 'datetime', nullable: true })
   finishedAt!: Date | null;
 
   @Column({ name: 'row_count', type: 'int', default: 0 })
   rowCount!: number;
 
-  @Column({ type: 'enum', enum: SyncRunStatus, default: SyncRunStatus.RUNNING })
+  @Column({ type: 'simple-enum', enum: SyncRunStatus, default: SyncRunStatus.RUNNING })
   status!: SyncRunStatus;
 
   @Column({ length: 50 })
@@ -36,6 +36,6 @@ export class SyncRun {
   @Column({ type: 'text', nullable: true })
   error!: string | null;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt!: Date;
 }

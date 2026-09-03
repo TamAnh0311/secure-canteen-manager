@@ -38,7 +38,7 @@ export class OrderItem {
 
   // Category at order-create time. Historical totals and policy evidence must not change when
   // an administrator later reclassifies the current menu item.
-  @Column({ type: 'enum', enum: MenuItemCategory, enumName: 'menu_item_category_enum' })
+  @Column({ type: 'simple-enum', enum: MenuItemCategory })
   category!: MenuItemCategory;
 
   // Portions of this item on the order. With UNIQUE(order, menu_item) an item is one row per
@@ -46,6 +46,6 @@ export class OrderItem {
   @Column({ type: 'int', default: 1 })
   quantity!: number;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt!: Date;
 }

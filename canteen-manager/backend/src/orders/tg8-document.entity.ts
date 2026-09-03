@@ -23,10 +23,10 @@ export class Tg8Document {
   @Column({ name: 'template_revision', type: 'varchar', length: 50 })
   templateRevision!: string;
 
-  @Column({ type: 'jsonb' })
+  @Column({ type: 'simple-json' })
   snapshot!: Tg8Snapshot;
 
-  @Column({ name: 'accepted_at', type: 'timestamptz' })
+  @Column({ name: 'accepted_at', type: 'datetime' })
   acceptedAt!: Date;
 
   @Column({ name: 'operator_id', type: 'uuid' })
@@ -36,6 +36,6 @@ export class Tg8Document {
   @JoinColumn({ name: 'operator_id' })
   operator!: Operator;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt!: Date;
 }

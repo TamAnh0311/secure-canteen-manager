@@ -26,7 +26,7 @@ export class AccountTransaction {
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: string;
 
-  @Column({ type: 'enum', enum: AccountTransactionType })
+  @Column({ type: 'simple-enum', enum: AccountTransactionType })
   type!: AccountTransactionType;
 
   // Signed integer VND: positive = credit (topup/reversal), negative = debit.
@@ -58,6 +58,6 @@ export class AccountTransaction {
   @Column({ type: 'varchar', length: 500, nullable: true })
   note!: string | null;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt!: Date;
 }

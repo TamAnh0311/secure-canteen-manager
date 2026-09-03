@@ -50,10 +50,10 @@ export class Order {
 
   // Sheet UUID from the scans table — that table arrives in a later phase;
   // stored here as a plain nullable column so ingestion can back-reference.
-  @Column({ name: 'sheet_id', type: 'uuid', nullable: true })
+  @Column({ name: 'sheet_id', type: 'varchar', nullable: true })
   sheetId!: string | null;
 
-  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.ACTIVE })
+  @Column({ type: 'simple-enum', enum: OrderStatus, default: OrderStatus.ACTIVE })
   status!: OrderStatus;
 
   // Order total in integer VND — snapshot of Σ order_item.unit_price at create time.
@@ -63,7 +63,7 @@ export class Order {
   // Payment lifecycle. Defaults unpaid on create; flips to paid only for a warden (omr) order
   // (paid from balance on create) or when a cashier accepts a pending relative order. A
   // relative order is created unpaid everywhere — there is no auto-pay on create.
-  @Column({ name: 'payment_status', type: 'enum', enum: PaymentStatus, default: PaymentStatus.UNPAID })
+  @Column({ name: 'payment_status', type: 'simple-enum', enum: PaymentStatus, default: PaymentStatus.UNPAID })
   paymentStatus!: PaymentStatus;
 
   // 'balance' (warden/scanner), 'cash' | 'bank' (relative intended tender, stored at create while
@@ -72,7 +72,7 @@ export class Order {
   paymentMethod!: string | null;
 
   // Populated when this order is superseded by a re-scan or correction
-  @Column({ name: 'superseded_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'superseded_at', type: 'datetime', nullable: true })
   supersededAt!: Date | null;
 
   // Points to the newer order that replaced this one — preserves the audit chain
@@ -84,7 +84,7 @@ export class Order {
   @Column({ name: 'settled_by_operator_id', type: 'uuid', nullable: true })
   settledByOperatorId!: string | null;
 
-  @Column({ name: 'settled_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'settled_at', type: 'datetime', nullable: true })
   settledAt!: Date | null;
 
   @Column({ name: 'reject_reason', length: 200, type: 'varchar', nullable: true })
@@ -104,9 +104,9 @@ export class Order {
   @Column({ name: 'received_amount', type: 'bigint', nullable: true, transformer: numericTransformer })
   receivedAmount!: number | null;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
   updatedAt!: Date;
 }

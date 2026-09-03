@@ -27,7 +27,7 @@ export class Operator {
   @Column({ name: 'display_name', length: 200 })
   displayName!: string;
 
-  @Column({ type: 'enum', enum: OperatorRole, default: OperatorRole.OPERATOR })
+  @Column({ type: 'simple-enum', enum: OperatorRole, default: OperatorRole.OPERATOR })
   role!: OperatorRole;
 
   @Column({ type: 'varchar', nullable: true, length: 255 })

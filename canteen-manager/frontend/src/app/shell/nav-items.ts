@@ -20,7 +20,6 @@ export const NAV_GROUPS: NavGroup[] = [
     group: 'Operations',
     items: [
       { id: 'dashboard',       path: '/dashboard',       icon: '▤' },
-      { id: 'order-form',      path: '/order-form',      icon: '⎙', roles: ['operator', 'admin'] },
       { id: 'orders',          path: '/orders',          icon: '☰' },
       { id: 'kitchen-summary', path: '/kitchen-summary', icon: '▥' },
       { id: 'counter',         path: '/counter',         icon: '₫', roles: ['cashier', 'admin'] },
@@ -30,10 +29,14 @@ export const NAV_GROUPS: NavGroup[] = [
     group: 'Setup',
     items: [
       { id: 'menu',           path: '/menu',           icon: '☰', adminOnly: true },
+      { id: 'form-print',     path: '/form-print',     icon: '⎗', adminOnly: true },
+      { id: 'data-sync',      path: '/data-sync',      icon: '⇄', adminOnly: true },
       { id: 'audit',          path: '/audit',          icon: '₿', adminOnly: true },
       { id: 'payment-config', path: '/payment-config', icon: '◈', adminOnly: true },
       { id: 'vouchers',       path: '/vouchers',       icon: '⎙', adminOnly: true },
       { id: 'operators',      path: '/operators',      icon: '♙', adminOnly: true },
+      { id: 'financial',     path: '/financial',     icon: '📊', adminOnly: true },
+      { id: 'audit-log',     path: '/audit-log',     icon: '⏱', adminOnly: true },
       { id: 'users',          path: '/prisoner',       icon: '◍' },
     ],
   },

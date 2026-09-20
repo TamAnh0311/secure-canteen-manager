@@ -1,9 +1,7 @@
 import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { menu } from '@/lib/api';
 import { useQuery } from '@/lib/use-query';
-import { formatTime } from '@/lib/format';
 import {
   Banner,
   Button,
@@ -27,11 +25,8 @@ import { PurchaseLimitsCard } from './purchase-limits-card';
 export function MenuConfigPage() {
   const { t } = useTranslation('menu');
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const items = useQuery(() => menu.listMenu(), []);
-  const form = useQuery(() => menu.getForm(), []);
-  const locked = form.data?.generatedAt != null;
 
   const [editing, setEditing] = useState<MenuItem | null>(null);
   const [deleting, setDeleting] = useState<MenuItem | null>(null);
@@ -71,18 +66,8 @@ export function MenuConfigPage() {
       <PageHeader
         title={t('pageTitle')}
         subtitle={t('pageSubtitle')}
-        actions={
-          <Button variant="primary" size="sm" onClick={() => navigate('/form-print')}>
-            {t('generateForm')}
-          </Button>
-        }
       />
 
-      {locked && (
-        <Banner tone="info" className="mb-4">
-          {t('lockedNotice')}
-        </Banner>
-      )}
       {items.error && (
         <Banner tone="danger" className="mb-4">
           {items.error.message}
@@ -122,7 +107,7 @@ export function MenuConfigPage() {
                 <MenuConfigRow
                   key={item.id}
                   item={item}
-                  locked={locked}
+                  locked={false}
                   isFirst={idx === 0}
                   isLast={idx === list.length - 1}
                   busy={busy}
@@ -137,20 +122,13 @@ export function MenuConfigPage() {
             )}
           </TBody>
         </Table>
-        {form.data && (
-          <p className="px-4 py-3 text-xs text-muted-fg border-t border-border">
-            {locked
-              ? t('formGenerated', { time: formatTime(form.data.generatedAt as string) })
-              : t('formNotGenerated')}
-          </p>
-        )}
       </Card>
 
       {editing && (
         <EditItemDialog
           item={editing}
           busy={busy}
-          locked={locked}
+          locked={false}
           onClose={() => setEditing(null)}
           onSave={(it, body) =>
             run(() => menu.updateMenuItem(it.id, body), 'toastUpdated').then((ok) => {

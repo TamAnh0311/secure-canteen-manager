@@ -14,11 +14,14 @@ const common = {
     counter: 'Quầy thu ngân',
     menu: 'Thực đơn',
     'form-print': 'In phiếu',
+    'data-sync': 'Đồng bộ dữ liệu',
     audit: 'Kiểm toán số dư',
     'payment-config': 'Tài khoản ngân hàng',
     users: 'Phạm nhân',
     vouchers: 'Phiếu giao hàng',
     operators: 'Nhân viên vận hành',
+    financial: 'Báo cáo tài chính',
+    'audit-log': 'Nhật ký hoạt động',
   },
 
   // Navigation group labels (keyed by group id)

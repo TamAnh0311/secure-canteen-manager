@@ -28,34 +28,34 @@ export class OmrFormTemplate {
   @Column({ type: 'varchar', length: 64 })
   revision!: string;
 
-  @Column({ type: 'enum', enum: OmrFormMode, enumName: 'omr_form_mode_enum' })
+  @Column({ type: 'simple-enum', enum: OmrFormMode })
   mode!: OmrFormMode;
 
   @Column({ name: 'paper_size', type: 'varchar', length: 8 })
   paperSize!: 'A4' | 'A5';
 
-  @Column({ type: 'enum', enum: OmrFormOrientation, enumName: 'omr_form_orientation_enum' })
+  @Column({ type: 'simple-enum', enum: OmrFormOrientation })
   orientation!: OmrFormOrientation;
 
-  @Column({ type: 'jsonb' })
+  @Column({ type: 'simple-json' })
   geometry!: object;
 
-  @Column({ name: 'geometry_hash', type: 'char', length: 64 })
+  @Column({ name: 'geometry_hash', type: 'varchar', length: 64 })
   geometryHash!: string;
 
-  @Column({ name: 'catalog_hash', type: 'char', length: 64, nullable: true })
+  @Column({ name: 'catalog_hash', type: 'varchar', length: 64, nullable: true })
   catalogHash!: string | null;
 
   @Column({ name: 'is_active', type: 'boolean', default: false })
   isActive!: boolean;
 
-  @Column({ name: 'activated_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'activated_at', type: 'datetime', nullable: true })
   activatedAt!: Date | null;
 
-  @Column({ name: 'retired_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'retired_at', type: 'datetime', nullable: true })
   retiredAt!: Date | null;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt!: Date;
 
   @OneToMany(() => OmrFormTemplateRow, (row) => row.template)

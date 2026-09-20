@@ -1,96 +1,93 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { menu, scans } from '@/lib/api';
+import QRCode from 'react-qr-code';
+import { menu, orders } from '@/lib/api';
+import { apiFetch } from '@/lib/api-client';
 import { useQuery } from '@/lib/use-query';
-import { formatDate, formatTime } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 import {
   Banner,
   Button,
   Card,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Kpi,
   PageHeader,
   Spinner,
 } from '@/ui';
 import { DateRangePicker, tomorrowRange, type DateRange } from '@/features/_shared/date-range-picker';
 
+/** Format an integer as a compact VND string (e.g. 1 250 000). */
+function formatVnd(amount: number): string {
+  return amount.toLocaleString('vi-VN');
+}
+
 export function DashboardPage() {
   const [range, setRange] = useState<DateRange>(tomorrowRange);
+  const [showQr, setShowQr] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation('dashboard');
 
-  const kpiQuery = useQuery(
-    () => scans.getKpi({ dateFrom: range.dateFrom, dateTo: range.dateTo }),
+  const statsQuery = useQuery(
+    () => orders.getStats({ dateFrom: range.dateFrom, dateTo: range.dateTo }),
     [range.dateFrom, range.dateTo],
   );
 
   const menuQuery = useQuery(() => menu.listMenu(), []);
-  const formQuery = useQuery(() => menu.getForm(), []);
+  const connQuery = useQuery(
+    () => apiFetch<{ canteenUrl: string | null }>('/health/connection-info'),
+    [],
+  );
 
-  const kpi = kpiQuery.data;
+  const stats = statsQuery.data;
   const menuItems = menuQuery.data ?? [];
-  const generatedAt = formQuery.data?.generatedAt ?? null;
+  const canteenUrl = connQuery.data?.canteenUrl ?? null;
 
   return (
     <>
       <PageHeader
         title={t('title', { date: formatDate(new Date()) })}
         actions={
-          <div className="flex items-center gap-2">
-            <DateRangePicker value={range} onChange={setRange} />
-            <Button variant="primary" size="sm" onClick={() => navigate('/verify')}>
-              {t('verifyQueue')}
-            </Button>
-          </div>
+          <DateRangePicker value={range} onChange={setRange} />
         }
       />
 
       {/* KPI row — driven by the selected service-date range */}
-      {kpiQuery.loading && !kpi && (
+      {statsQuery.loading && !stats && (
         <div className="flex justify-center py-8">
           <Spinner size={24} />
         </div>
       )}
-      {kpiQuery.error && (
+      {statsQuery.error && (
         <Banner tone="danger" className="mb-4">
-          {kpiQuery.error.message}
+          {statsQuery.error.message}
         </Banner>
       )}
-      {kpi && (
+      {stats && (
         <div
           className="grid gap-4 mb-4"
           style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}
           aria-live="polite"
         >
           <Card>
-            <Kpi label={t('kpi.pending')} value={kpi.pending} />
-          </Card>
-          <Card>
-            <Kpi label={t('kpi.processing')} value={kpi.processing} />
+            <Kpi label={t('kpi.totalOrders')} value={stats.totalOrders} />
           </Card>
           <Card>
             <Kpi
-              label={t('kpi.autoAccepted')}
-              value={<span className="text-success">{kpi.autoAccepted}</span>}
+              label={t('kpi.pending')}
+              value={<span className="text-warning">{stats.pendingOrders}</span>}
             />
           </Card>
           <Card>
             <Kpi
-              label={t('kpi.flagged')}
-              value={<span className="text-warning">{kpi.flagged}</span>}
+              label={t('kpi.paidOrders')}
+              value={<span className="text-success">{stats.paidOrders}</span>}
             />
           </Card>
           <Card>
-            <Kpi
-              label={t('kpi.rejected')}
-              value={<span className="text-danger">{kpi.rejected}</span>}
-            />
-          </Card>
-          <Card>
-            <Kpi
-              label={t('kpi.verified')}
-              value={<span className="text-success">{kpi.verified}</span>}
-            />
+            <Kpi label={t('kpi.revenue')} value={formatVnd(stats.totalRevenue)} />
           </Card>
         </div>
       )}
@@ -128,13 +125,6 @@ export function DashboardPage() {
             </div>
           )}
 
-          <div className="text-[13px] text-muted-fg">
-            {generatedAt
-              ? t('formGenerated', {
-                  time: formatTime(generatedAt, { dateStyle: 'short', timeStyle: 'short' } as Intl.DateTimeFormatOptions),
-                })
-              : t('formNotGenerated')}
-          </div>
         </Card>
 
         {/* Quick actions */}
@@ -142,22 +132,42 @@ export function DashboardPage() {
           <Card>
             <h2 className="text-base font-semibold mb-2">{t('quickActions')}</h2>
             <div className="flex flex-col gap-2">
-              <Button variant="outline" onClick={() => navigate('/form-print')}>
-                {t('printForms')}
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/scan-monitor')}>
-                {t('openScanMonitor')}
-              </Button>
               <Button variant="outline" onClick={() => navigate('/kitchen-summary')}>
                 {t('kitchenSummary')}
               </Button>
               <Button variant="outline" onClick={() => navigate('/orders')}>
                 {t('viewOrders')}
               </Button>
+              <Button variant="outline" onClick={() => navigate('/canteen')}>
+                {t('openCanteen')}
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/counter')}>
+                {t('openCounter')}
+              </Button>
+              {canteenUrl && (
+                <Button variant="outline" onClick={() => setShowQr(true)}>
+                  {t('tabletConnection')}
+                </Button>
+              )}
             </div>
           </Card>
         </div>
       </div>
+      {/* Tablet connection QR dialog */}
+      {canteenUrl && (
+        <Dialog open={showQr} onOpenChange={setShowQr}>
+          <DialogContent>
+            <DialogTitle>{t('tabletConnection')}</DialogTitle>
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div className="bg-white p-4 rounded-lg">
+                <QRCode value={canteenUrl} size={220} level="M" />
+              </div>
+              <p className="text-sm text-muted-fg text-center break-all font-mono">{canteenUrl}</p>
+              <p className="text-sm text-muted-fg text-center">{t('tabletHint')}</p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

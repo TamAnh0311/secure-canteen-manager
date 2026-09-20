@@ -47,6 +47,13 @@ export function getSummary(date?: string): Promise<MenuItemSummary[]> {
   return apiFetch<MenuItemSummary[]>(`/menu/summary${qs}`);
 }
 
+// Kitchen summary aggregated across a date range (inclusive).
+export function getSummaryRange(dateFrom: string, dateTo: string): Promise<MenuItemSummary[]> {
+  return apiFetch<MenuItemSummary[]>(
+    `/menu/summary-range?dateFrom=${encodeURIComponent(dateFrom)}&dateTo=${encodeURIComponent(dateTo)}`,
+  );
+}
+
 // Form-generation status. generatedAt non-null = menu locked (reorder/rename/
 // hard-delete disabled), so the UI reads this rather than guessing.
 export function getForm(): Promise<MenuFormStatus> {

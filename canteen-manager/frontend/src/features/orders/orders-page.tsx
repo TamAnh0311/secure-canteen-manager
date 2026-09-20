@@ -123,7 +123,14 @@ export function OrdersPage() {
                       <span className="font-mono text-sm">{order.id.slice(0, 8)}</span>
                     </Td>
                     <Td>
-                      <span className="font-mono text-sm">{order.userId}</span>
+                      {order.userName ? (
+                        <div>
+                          <div className="text-sm font-medium">{order.userName}</div>
+                          {order.userLegacyId && <div className="text-xs text-muted-fg font-mono">{order.userLegacyId}</div>}
+                        </div>
+                      ) : (
+                        <span className="font-mono text-sm">{order.userId.slice(0, 8)}</span>
+                      )}
                     </Td>
                     <Td>
                       <span className="capitalize text-sm">{order.source}</span>

@@ -56,7 +56,7 @@ export class User {
   @Column({ name: 'arrest_date', type: 'date', nullable: true })
   arrestDate!: string | null;
 
-  @Column({ name: 'detention_status', type: 'enum', enum: DetentionStatus, nullable: true })
+  @Column({ name: 'detention_status', type: 'simple-enum', enum: DetentionStatus, nullable: true })
   detentionStatus!: DetentionStatus | null;
 
   @Column({ name: 'is_active', default: true })
@@ -65,12 +65,12 @@ export class User {
   @Column({ length: 100, default: 'sql2005' })
   source!: string;
 
-  @Column({ name: 'synced_at', type: 'timestamptz' })
+  @Column({ name: 'synced_at', type: 'datetime' })
   syncedAt!: Date;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn({ name: 'created_at', type: 'datetime' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
   updatedAt!: Date;
 }

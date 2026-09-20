@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Design B — Two-Column Grid</title>
+<style>
+  @page { size: A5 landscape; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f0f0f0; display: flex; justify-content: center; padding: 20px; }
+  .page {
+    width: 210mm; height: 148mm;
+    background: white; padding: 8mm 10mm 6mm;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    position: relative;
+  }
+  .mark { position: absolute; width: 6px; height: 6px; background: black; }
+  .mark.tl { top: 6px; left: 6px; }
+  .mark.tr { top: 6px; right: 6px; }
+  .mark.bl { bottom: 6px; left: 6px; }
+  .mark.br { bottom: 6px; right: 6px; }
+  .qr { position: absolute; top: 10px; right: 14px; width: 48px; height: 48px; border: 1px solid #999; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999; }
+
+  .header { text-align: center; margin-bottom: 4mm; }
+  .header h1 { font-size: 13pt; letter-spacing: 1px; }
+  .fields { display: flex; gap: 5mm; font-size: 7.5pt; margin-top: 2mm; }
+  .field label { font-weight: bold; }
+  .field .line { border-bottom: 1px solid #000; display: inline-block; min-width: 25mm; margin-left: 1mm; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 6mm; }
+  .col-header {
+    display: grid; grid-template-columns: 16mm 1fr 14mm 30mm;
+    background: #2c3e50; color: white; padding: 2mm 2mm;
+    font-size: 6.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+    border-radius: 2px 2px 0 0;
+  }
+  .col-header .r { text-align: right; }
+  .col-header .c { text-align: center; }
+  .item-row {
+    display: grid; grid-template-columns: 16mm 1fr 14mm 30mm;
+    padding: 1.4mm 2mm; font-size: 7pt;
+    border-bottom: 1px solid #eee;
+    align-items: center;
+  }
+  .item-row:nth-child(even) { background: #f5f7fa; }
+  .item-row .code { color: #e74c3c; font-weight: bold; font-family: monospace; font-size: 7.5pt; }
+  .item-row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-row .price { text-align: right; color: #666; font-size: 6.5pt; }
+  .item-row .bubbles { display: flex; justify-content: center; gap: 3px; }
+  .bubble { width: 9px; height: 9px; border: 1.2px solid #333; border-radius: 50%; flex-shrink: 0; }
+  .qty-labels { display: flex; justify-content: center; gap: 3px; }
+  .qty-labels span { width: 9px; text-align: center; font-size: 6pt; }
+
+  .footer { margin-top: 2mm; font-size: 5.5pt; color: #888; text-align: center; }
+  .divider { border-left: 1px dashed #ccc; margin-left: -3mm; padding-left: 3mm; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="mark tl"></div><div class="mark tr"></div><div class="mark bl"></div><div class="mark br"></div>
+  <div class="qr">QR</div>
+
+  <div class="header">
+    <h1>PHIẾU ĐẶT HÀNG CANTEEN</h1>
+    <div class="fields">
+      <div class="field"><label>Họ tên:</label><span class="line">&nbsp;</span></div>
+      <div class="field"><label>Số tù:</label><span class="line">&nbsp;</span></div>
+      <div class="field"><label>Buồng:</label><span class="line">&nbsp;</span></div>
+      <div class="field"><label>Ngày:</label><span class="line">&nbsp;</span></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="col-header"><span>Mã</span><span>Tên hàng</span><span class="r">Giá</span><span class="c"><div class="qty-labels"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div></span></div>
+      <div id="col-left"></div>
+    </div>
+    <div class="divider">
+      <div class="col-header"><span>Mã</span><span>Tên hàng</span><span class="r">Giá</span><span class="c"><div class="qty-labels"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div></span></div>
+      <div id="col-right"></div>
+    </div>
+  </div>
+
+  <div class="footer">Đánh dấu ○ số lượng (1–5) cho từng món. Một ô = một phần. Không tẩy xóa.</div>
+</div>
+
+<script>
+const items = [
+  ['001','Mì tôm Hảo Hảo',15000],['002','Xà phòng Lifebuoy',18000],['003','Nước suối 500ml',8000],
+  ['004','Kem đánh răng P/S',26000],['005','Sữa hộp Vinamilk',12000],['006','Bàn chải đánh răng',14000],
+  ['007','Bánh quy',20000],['008','Dầu gội gói',5000],['009','Lạc rang',10000],['010','Khăn mặt',25000],
+  ['011','Bánh mì ngọt',12000],['012','Giấy vệ sinh',16000],['013','Sữa đậu nành',10000],
+  ['014','Bột giặt gói',15000],['015','Kẹo lạc',10000],['016','Nước rửa tay',22000],
+  ['017','Bánh gạo',18000],['018','Lược nhựa',10000],['019','Cà phê hòa tan',9000],['020','Bấm móng tay',18000],
+  ['021','Trà túi lọc',15000],['022','Dép nhựa',55000],['023','Đường gói',12000],['024','Áo lót cotton',45000],
+  ['025','Muối lạc',12000],['026','Quần lót cotton',45000],['027','Chà bông',30000],['028','Khẩu trang vải',12000],
+];
+const half = Math.ceil(items.length / 2);
+function renderCol(el, rows) {
+  rows.forEach(([code,name,price]) => {
+    const d = document.createElement('div');
+    d.className = 'item-row';
+    d.innerHTML = `<span class="code">${code}</span><span class="name">${name}</span><span class="price">${(price/1000).toFixed(0)}k</span><span class="bubbles"><span class="bubble"></span><span class="bubble"></span><span class="bubble"></span><span class="bubble"></span><span class="bubble"></span></span>`;
+    el.appendChild(d);
+  });
+}
+renderCol(document.getElementById('col-left'), items.slice(0, half));
+renderCol(document.getElementById('col-right'), items.slice(half));
+</script>
+</body>
+</html>

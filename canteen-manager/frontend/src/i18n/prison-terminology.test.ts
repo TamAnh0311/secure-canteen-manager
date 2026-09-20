@@ -20,8 +20,8 @@ describe('NAMESPACES coverage', () => {
     expect(NAMESPACES).toContain('counter');
   });
 
-  it('includes kiosk namespace', () => {
-    expect(NAMESPACES).toContain('kiosk');
+  it('includes canteen namespace', () => {
+    expect(NAMESPACES).toContain('canteen');
   });
 
   it('includes accounts namespace', () => {

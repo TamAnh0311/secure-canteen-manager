@@ -1,6 +1,5 @@
 const dashboard = {
   title: 'Hôm nay · {{date}}',
-  verifyQueue: 'Hàng chờ xét duyệt',
 
   // Date-range filter (drives the KPI counts below)
   dateRangeLabel: 'Khoảng ngày',
@@ -11,20 +10,20 @@ const dashboard = {
   menuItemCount_one: '{{count}} món trong thực đơn',
   menuItemCount_other: '{{count}} món trong thực đơn',
   formGenerated: 'Đã tạo phiếu lúc {{time}}',
-  formNotGenerated: 'Chưa tạo phiếu OMR',
+  formNotGenerated: 'Chưa tạo phiếu',
 
   quickActions: 'Thao tác nhanh',
-  printForms: '⎙ In phiếu OMR',
-  openScanMonitor: '▦ Mở giám sát quét',
+  tabletConnection: 'Kết nối máy tính bảng',
+  tabletHint: 'Quét mã QR bằng máy tính bảng để mở trang đặt hàng',
   kitchenSummary: '▥ Tổng kết bếp',
   viewOrders: '☰ Xem đơn hàng',
+  openCanteen: '▦ Căn tin',
+  openCounter: '▤ Quầy thu ngân',
   kpi: {
-    pending: 'Chờ xử lý',
-    processing: 'Đang xử lý',
-    autoAccepted: 'Tự động chấp nhận',
-    flagged: 'Cần xét duyệt',
-    rejected: 'Từ chối',
-    verified: 'Đã xác minh',
+    totalOrders: 'Tổng đơn',
+    pending: 'Chờ thanh toán',
+    paidOrders: 'Đã thanh toán',
+    revenue: 'Doanh thu',
   },
 } as const;
 

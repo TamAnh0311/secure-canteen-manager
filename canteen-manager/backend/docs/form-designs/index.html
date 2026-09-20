@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Canteen Order Form — Design Options</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; }
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  p { color: #666; margin-bottom: 30px; }
+  .card { background: white; border-radius: 8px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .card h2 { margin: 0 0 8px; font-size: 18px; }
+  .card .desc { color: #666; font-size: 14px; margin-bottom: 16px; }
+  .tags { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #e8f4fd; color: #1a73e8; }
+  .tag.orange { background: #fff3e0; color: #e65100; }
+  .tag.green { background: #e8f5e9; color: #2e7d32; }
+  a.btn { display: inline-block; padding: 8px 20px; background: #1a73e8; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; }
+  a.btn:hover { background: #1557b0; }
+</style>
+</head>
+<body>
+  <h1>Canteen Order Form Designs</h1>
+  <p>Open each design to preview at A5 landscape scale. All include registration marks, QR code, Vietnamese text, and OMR bubbles.</p>
+
+  <div class="card">
+    <h2>Design A — Clean Table</h2>
+    <div class="tags"><span class="tag">Single column</span><span class="tag green">Simple</span><span class="tag">Up to ~28 items</span></div>
+    <div class="desc">Full-width table with dark header bar, alternating rows, price column. Minimal, easy to scan by eye. Best for menus under 30 items.</div>
+    <a class="btn" href="design-a-clean-table.html" target="_blank">Open Preview →</a>
+  </div>
+
+  <div class="card">
+    <h2>Design B — Two-Column Grid</h2>
+    <div class="tags"><span class="tag">Two columns</span><span class="tag orange">Code + Name</span><span class="tag">Up to ~50 items</span></div>
+    <div class="desc">Items split across two columns with item codes shown in red. Dashed divider between columns. Compact — fits up to 50 items with short prices.</div>
+    <a class="btn" href="design-b-two-column.html" target="_blank">Open Preview →</a>
+  </div>
+
+  <div class="card">
+    <h2>Design C — Categorized Sections</h2>
+    <div class="tags"><span class="tag orange">Food / Essential</span><span class="tag green">Color-coded</span><span class="tag">Total + Signatures</span></div>
+    <div class="desc">Food and Essential items in separate color-coded columns (orange/blue headers). Includes total amount box and dual signature lines. Most formal layout.</div>
+    <a class="btn" href="design-c-categorized.html" target="_blank">Open Preview →</a>
+  </div>
+
+  <div class="card">
+    <h2>Design D — Compact Official</h2>
+    <div class="tags"><span class="tag">Two columns</span><span class="tag green">Official style</span><span class="tag">Serif font</span><span class="tag">Total + Signatures</span></div>
+    <div class="desc">Traditional government-form style with Times New Roman, bordered page, dotted identity fields, form ID, signature block. Two-column item table with full prices. Most printer-friendly.</div>
+    <a class="btn" href="design-d-compact-official.html" target="_blank">Open Preview →</a>
+  </div>
+</body>
+</html>

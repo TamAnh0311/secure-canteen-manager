@@ -1,6 +1,10 @@
 import { MenuController } from '../menu.controller';
 import { MenuService } from '../menu.service';
 import { MenuItemSummary } from '../menu.service';
+import { ThresholdConfigService } from '../../config/threshold-config.service';
+import { OmrClientService } from '../../omr/omr-client.service';
+import { OmrFormTemplatesService } from '../../omr-forms/omr-form-templates.service';
+import { ScanWorkflowModeService } from '../../config/scan-workflow-mode.service';
 
 function harness() {
   const menuService = {
@@ -10,9 +14,22 @@ function harness() {
     updateItem: jest.fn(),
     removeItem: jest.fn(),
     reorder: jest.fn(),
+    activeCatalogSnapshot: jest.fn().mockResolvedValue([]),
+    assertCodesFitForm: jest.fn().mockResolvedValue(undefined),
+    scannerCatalogueExport: jest.fn().mockResolvedValue({ schemaVersion: 'scanner-catalogue-v1', version: '', items: [] }),
   };
+  const thresholdConfig = { getRoi: jest.fn().mockResolvedValue({ roiTemplate: null, roiVersion: null, roiGeneratedAt: null }) };
+  const omrClient = { generateA5Template: jest.fn() };
+  const templatesService = { getActiveTemplates: jest.fn().mockResolvedValue([]) };
+  const workflowMode = { assertOmrFormMutationEnabled: jest.fn() };
   return {
-    controller: new MenuController(menuService as unknown as MenuService),
+    controller: new MenuController(
+      menuService as unknown as MenuService,
+      thresholdConfig as unknown as ThresholdConfigService,
+      omrClient as unknown as OmrClientService,
+      templatesService as unknown as OmrFormTemplatesService,
+      workflowMode as unknown as ScanWorkflowModeService,
+    ),
     menuService,
   };
 }

@@ -27,8 +27,28 @@ const envSchema = z.object({
 
   APP_TZ: z.string().default('Asia/Saigon'),
 
+  // OMR service — external PDF renderer for scan forms
+  OMR_SERVICE_URL: z.string().default('http://localhost:8000'),
+  OMR_SERVICE_TIMEOUT_MS: z.coerce.number().default(30000),
+
+  // Scan workflow mode
+  SCAN_WORKFLOW_MODE: z.enum(['legacy_omr', 'scanner_shadow', 'scanner_webhook']).default('legacy_omr'),
+
+  // Recognition thresholds
+  ICR_CONFIDENCE_THRESHOLD: z.coerce.number().default(0.85),
+  OMR_EMPTY_MAX: z.coerce.number().default(0.30),
+  OMR_TICKED_MIN: z.coerce.number().default(0.70),
+  DIGIT_BOX_COUNT: z.coerce.number().default(6),
+
+  // OMR operational mode (issued = personalized per-prisoner forms, generic = shared master)
+  OMR_OPERATIONAL_FORM_MODE: z.enum(['issued', 'generic']).default('issued'),
+  OMR_OPERATIONAL_FORM_GENERATION: z.string().default('default'),
+
   // Static file serving — set by Electron to serve React build
   FRONTEND_DIST_PATH: z.string().optional(),
+
+  // LAN IP — set by Electron for tablet connection QR code
+  LAN_IP: z.string().optional(),
 
   // Legacy SQL Server sync — all optional
   LEGACY_SQL_HOST: z.string().optional(),

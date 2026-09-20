@@ -34,6 +34,6 @@ export class PaymentConfig {
   @Column({ name: 'account_name', type: 'varchar', length: 140, nullable: true })
   accountName!: string | null;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
   updatedAt!: Date;
 }

@@ -1,0 +1,16 @@
+{
+  "name": "canteen-screenshot-pptx",
+  "version": "1.0.0",
+  "description": "Playwright screenshot capture + PowerPoint generator for Canteen Manager",
+  "type": "module",
+  "scripts": {
+    "capture": "node capture.mjs",
+    "build": "node build-pptx.mjs",
+    "all": "node run.mjs all"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "playwright": "^1.63.0",
+    "pptxgenjs": "^4.0.1"
+  }
+}

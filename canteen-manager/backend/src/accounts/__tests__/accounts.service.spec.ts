@@ -24,6 +24,7 @@ function makeFakeEm(seed: Array<{ userId: string; balance: number }> = []) {
   const ledger: AccountTransaction[] = [];
 
   const em = {
+    connection: { options: { type: 'postgres' } },
     query: jest.fn(async (sql: string, params: unknown[]) => {
       if (/insert\s+into\s+prisoner_accounts/i.test(sql)) {
         const userId = params[0] as string;

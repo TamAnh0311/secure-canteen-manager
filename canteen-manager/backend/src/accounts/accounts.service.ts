@@ -4,6 +4,7 @@ import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { PrisonerAccount } from './prisoner-account.entity';
 import { AccountTransaction, AccountTransactionType } from './account-transaction.entity';
 import { MAX_VND } from '../common/numeric.transformer';
+import { sqliteSafeLock } from '../common/sqlite-safe-lock';
 
 export interface CreditInput {
   userId: string;
@@ -71,13 +72,15 @@ export class AccountsService {
   // inside a transaction so the lock is held until the caller's TX commits — this is what
   // serializes concurrent debits and prevents oversell.
   async getOrCreate(userId: string, em: EntityManager): Promise<PrisonerAccount> {
+    const isSqlite = em.connection.options.type === 'better-sqlite3';
+    const placeholder = isSqlite ? '?' : '$1';
     await em.query(
-      'INSERT INTO prisoner_accounts (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING',
+      `INSERT INTO prisoner_accounts (user_id) VALUES (${placeholder}) ON CONFLICT (user_id) DO NOTHING`,
       [userId],
     );
     const account = await em.findOne(PrisonerAccount, {
       where: { userId },
-      lock: { mode: 'pessimistic_write' },
+      ...sqliteSafeLock('pessimistic_write'),
     });
     if (!account) {
       // Unreachable: the upsert above guarantees the row. Keeps the type honest.

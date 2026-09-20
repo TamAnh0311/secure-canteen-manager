@@ -33,7 +33,7 @@ export class OperatorZoneAccessService {
   ): SelectQueryBuilder<T> {
     const zone = this.requireOperatorZone(actor);
     if (zone) {
-      qb.andWhere(`BTRIM(${userExpression}) = :${parameter}`, { [parameter]: zone });
+      qb.andWhere(`TRIM(${userExpression}) = :${parameter}`, { [parameter]: zone });
     }
     return qb;
   }
@@ -51,7 +51,7 @@ export class OperatorZoneAccessService {
           SELECT 1
           FROM "users" "zone_scope_user"
           WHERE "zone_scope_user"."id" = ${userIdExpression}
-            AND BTRIM("zone_scope_user"."zone") = :${parameter}
+            AND TRIM("zone_scope_user"."zone") = :${parameter}
         )`,
         { [parameter]: zone },
       );
@@ -69,7 +69,7 @@ export class OperatorZoneAccessService {
     const repo = manager ? manager.getRepository(User) : this.users;
     const qb = repo.createQueryBuilder('zone_user').where('zone_user.id = :userId', { userId });
     if (zone) {
-      qb.andWhere('BTRIM(zone_user.zone) = :operatorZone', { operatorZone: zone });
+      qb.andWhere('TRIM(zone_user.zone) = :operatorZone', { operatorZone: zone });
     }
     if (lock) qb.setLock('pessimistic_read');
     const user = await qb.getOne();

@@ -14,11 +14,14 @@ const common = {
     counter: 'Cashier Counter',
     menu: 'Shared Menu',
     'form-print': 'Print Forms',
+    'data-sync': 'Data Sync',
     audit: 'Balance Audit',
     'payment-config': 'Bank Account',
     users: 'Users',
     vouchers: 'Delivery Vouchers',
     operators: 'Operators',
+    financial: 'Financial Report',
+    'audit-log': 'Audit Log',
   },
 
   // Navigation group labels (keyed by group id)

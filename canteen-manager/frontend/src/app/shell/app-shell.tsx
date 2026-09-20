@@ -5,18 +5,11 @@ import { Button, LanguageToggle } from '@/ui';
 import { formatDate } from '@/lib/format';
 import { SideNav } from './side-nav';
 
-const OMR_GLYPH = (
-  <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" style={{ flex: 'none' }}>
-    <rect x="1" y="1" width="20" height="20" rx="3" fill="none" stroke="#2563EB" strokeWidth="2" />
-    <circle cx="6.5"  cy="6.5"  r="1.6" fill="#2563EB" />
-    <circle cx="11"   cy="6.5"  r="1.6" fill="#CBD5E1" />
-    <circle cx="15.5" cy="6.5"  r="1.6" fill="#2563EB" />
-    <circle cx="6.5"  cy="11"   r="1.6" fill="#CBD5E1" />
-    <circle cx="11"   cy="11"   r="1.6" fill="#2563EB" />
-    <circle cx="15.5" cy="11"   r="1.6" fill="#CBD5E1" />
-    <circle cx="6.5"  cy="15.5" r="1.6" fill="#2563EB" />
-    <circle cx="11"   cy="15.5" r="1.6" fill="#CBD5E1" />
-    <circle cx="15.5" cy="15.5" r="1.6" fill="#2563EB" />
+const APP_ICON = (
+  <svg width="24" height="24" viewBox="0 0 64 64" aria-hidden="true" style={{ flex: 'none' }}>
+    <rect width="64" height="64" rx="14" fill="#1e40af" />
+    <path d="M20 16h24a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V20a4 4 0 0 1 4-4z" fill="#3b82f6" opacity="0.4" />
+    <text x="32" y="44" textAnchor="middle" fontSize="28" fontWeight="bold" fill="white" fontFamily="Arial,sans-serif">CM</text>
   </svg>
 );
 
@@ -48,11 +41,8 @@ export function AppShell() {
         className="no-print flex items-center gap-2 px-4 bg-card border-r border-b border-border font-semibold text-[15px]"
         style={{ gridArea: 'brand' }}
       >
-        {OMR_GLYPH}
-        <span>
-          Canteen
-          <span className="font-mono text-primary">OMR</span>
-        </span>
+        {APP_ICON}
+        <span>Canteen Manager</span>
       </div>
 
       {/* Topbar */}

@@ -3,3 +3,6 @@ dist/
 release/
 *.sqlite
 .env
+*.tar
+*.sqlite-shm
+*.sqlite-wal

@@ -57,7 +57,7 @@ export function saveConfig(config: AppConfig): void {
 export function createDefaultConfig(): AppConfig {
   return {
     jwtSecret: crypto.randomBytes(32).toString('hex'),
-    backendPort: 3000,
+    backendPort: 6868,
     appTimezone: 'Asia/Saigon',
     legacySyncEnabled: false,
   };

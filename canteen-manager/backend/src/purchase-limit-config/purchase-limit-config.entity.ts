@@ -34,6 +34,6 @@ export class PurchaseLimitConfig {
   @Column({ name: 'visitor_essential_amount', type: 'bigint', nullable: true, transformer: numericTransformer })
   visitorEssentialAmount!: number | null;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
   updatedAt!: Date;
 }

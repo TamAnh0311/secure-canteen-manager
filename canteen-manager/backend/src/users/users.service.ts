@@ -88,15 +88,18 @@ export class UsersService {
   search(opts: SearchOptions, actor?: OperatorPublic): Promise<UserListItem[]> {
     const qb = this.directoryQuery(opts, actor);
 
+    // Use LIKE instead of ILIKE for SQLite compatibility (SQLite LIKE is already
+    // case-insensitive for ASCII; Postgres LIKE is case-sensitive but the LOWER()
+    // wrapper achieves the same effect on both engines).
     if (opts.q) {
       qb.andWhere(
-        '(u.name ILIKE :q OR u.legacy_id ILIKE :q)',
+        '(LOWER(u.name) LIKE LOWER(:q) OR LOWER(u.legacy_id) LIKE LOWER(:q))',
         { q: `%${opts.q}%` },
       );
     }
 
     if (opts.zone) {
-      qb.andWhere('u.zone ILIKE :zone', { zone: `%${opts.zone}%` });
+      qb.andWhere('LOWER(u.zone) LIKE LOWER(:zone)', { zone: `%${opts.zone}%` });
     }
 
     return this.withBalance(qb);
@@ -105,22 +108,26 @@ export class UsersService {
   async listDistinctZones(): Promise<string[]> {
     const rows = await this.repo
       .createQueryBuilder('u')
-      .select('DISTINCT BTRIM(u.zone)', 'zone')
+      .select('DISTINCT TRIM(u.zone)', 'zone')
       .where('u.zone IS NOT NULL')
-      .andWhere("BTRIM(u.zone) <> ''")
+      .andWhere("TRIM(u.zone) <> ''")
       .orderBy('zone', 'ASC')
       .getRawMany<{ zone: string }>();
     return rows.map((row) => normalizeZone(row.zone)).filter((zone): zone is string => zone !== null);
   }
 
   async scannerIdentityReadiness(): Promise<ScannerIdentityReadiness> {
+    // Uses SUM(CASE WHEN ...) instead of COUNT(*) FILTER for SQLite compatibility.
+    // The regex check uses a LIKE pattern that matches exactly 6 digits — equivalent
+    // to the Postgres !~ '^[0-9]{6}$' but portable across both engines.
+    const isSqlite = this.repo.manager.connection.options.type === 'better-sqlite3';
+    const invalidExpr = isSqlite
+      ? "SUM(CASE WHEN TRIM(u.legacy_id) NOT GLOB '[0-9][0-9][0-9][0-9][0-9][0-9]' THEN 1 ELSE 0 END)"
+      : "COUNT(*) FILTER (WHERE BTRIM(u.legacy_id) !~ '^[0-9]{6}$')";
     const row = await this.repo
       .createQueryBuilder('u')
       .select('COUNT(*)', 'activeUsers')
-      .addSelect(
-        "COUNT(*) FILTER (WHERE BTRIM(u.legacy_id) !~ '^[0-9]{6}$')",
-        'invalidLegacyIds',
-      )
+      .addSelect(invalidExpr, 'invalidLegacyIds')
       .where('u.is_active = true')
       .getRawOne<{ activeUsers: string; invalidLegacyIds: string }>();
     const activeUsers = Number(row?.activeUsers ?? 0);
@@ -131,11 +138,11 @@ export class UsersService {
   async listIssuanceRosterOptions(actor: OperatorPublic): Promise<IssuanceRosterOptions> {
     const qb = this.repo
       .createQueryBuilder('u')
-      .select('BTRIM(u.zone)', 'zone')
-      .addSelect("NULLIF(BTRIM(u.cell), '')", 'cell')
+      .select('TRIM(u.zone)', 'zone')
+      .addSelect("NULLIF(TRIM(u.cell), '')", 'cell')
       .where('u.is_active = true')
       .andWhere('u.zone IS NOT NULL')
-      .andWhere("BTRIM(u.zone) <> ''")
+      .andWhere("TRIM(u.zone) <> ''")
       .distinct(true)
       .orderBy('zone', 'ASC')
       .addOrderBy('cell', 'ASC', 'NULLS FIRST');
@@ -163,16 +170,16 @@ export class UsersService {
       .createQueryBuilder('u')
       .select(['u.id', 'u.legacyId', 'u.name', 'u.zone', 'u.cell'])
       .where('u.is_active = true')
-      .andWhere('BTRIM(u.zone) = :rosterZone', { rosterZone: zone })
-      .orderBy('BTRIM(u.zone)', 'ASC')
-      .addOrderBy("NULLIF(BTRIM(u.cell), '')", 'ASC', 'NULLS FIRST')
+      .andWhere('TRIM(u.zone) = :rosterZone', { rosterZone: zone })
+      .orderBy('TRIM(u.zone)', 'ASC')
+      .addOrderBy("NULLIF(TRIM(u.cell), '')", 'ASC', 'NULLS FIRST')
       .addOrderBy('u.name', 'ASC')
       .addOrderBy('u.legacyId', 'ASC')
       .addOrderBy('u.id', 'ASC');
     if (exactCell === null) {
-      qb.andWhere("NULLIF(BTRIM(u.cell), '') IS NULL");
+      qb.andWhere("NULLIF(TRIM(u.cell), '') IS NULL");
     } else {
-      qb.andWhere("NULLIF(BTRIM(u.cell), '') = :rosterCell", { rosterCell: exactCell.trim() });
+      qb.andWhere("NULLIF(TRIM(u.cell), '') = :rosterCell", { rosterCell: exactCell.trim() });
     }
     this.zoneAccess!.scopeByUser(qb, actor, 'u.zone', 'rosterActorZone');
     const users = await qb.getMany();
@@ -240,7 +247,7 @@ export class UsersService {
     const qb = this.repo
       .createQueryBuilder('u')
       .where('u.is_active = true')
-      .andWhere('(u.name ILIKE :candidateQuery OR u.legacy_id ILIKE :candidateQuery OR u.cell ILIKE :candidateQuery)', {
+      .andWhere('(LOWER(u.name) LIKE LOWER(:candidateQuery) OR LOWER(u.legacy_id) LIKE LOWER(:candidateQuery) OR LOWER(u.cell) LIKE LOWER(:candidateQuery))', {
         candidateQuery: `%${q}%`,
       })
       .orderBy('u.name', 'ASC')
@@ -252,26 +259,34 @@ export class UsersService {
 
   async auditCellNormalization(manager?: EntityManager): Promise<CellNormalizationAudit> {
     const repo = manager ? manager.getRepository(User) : this.repo;
+    const isSqlite = repo.manager.connection.options.type === 'better-sqlite3';
+    const placeholder = isSqlite ? '?' : '$1';
+    // SUM(CASE WHEN ...) replaces FILTER(WHERE ...) for SQLite compatibility.
+    // CAST(... AS INTEGER) replaces ::int for cross-DB portability.
+    // IS NOT replaces IS DISTINCT FROM (SQLite equivalent for NULL-safe inequality).
+    const isDistinct = isSqlite
+      ? `cell_normalization_version IS NOT ${placeholder}`
+      : `cell_normalization_version IS DISTINCT FROM ${placeholder}`;
     const rows = await repo.query(`
       WITH active AS (
         SELECT normalized_cell, cell_normalization_version
         FROM users
         WHERE is_active = true
       ), collisions AS (
-        SELECT normalized_cell, count(*)::int AS occupants
+        SELECT normalized_cell, CAST(count(*) AS INTEGER) AS occupants
         FROM active
         WHERE normalized_cell IS NOT NULL
           AND normalized_cell <> ''
-          AND cell_normalization_version = $1
+          AND cell_normalization_version = ${placeholder}
         GROUP BY normalized_cell
         HAVING count(*) > 1
       )
       SELECT
-        count(*)::int AS active_users,
-        count(*) FILTER (WHERE normalized_cell IS NULL OR normalized_cell = '')::int AS blank,
-        count(*) FILTER (WHERE cell_normalization_version IS DISTINCT FROM $1)::int AS stale_version,
-        (SELECT count(*)::int FROM collisions) AS collision_groups,
-        COALESCE((SELECT sum(occupants)::int FROM collisions), 0) AS users_in_collisions
+        CAST(count(*) AS INTEGER) AS active_users,
+        CAST(SUM(CASE WHEN normalized_cell IS NULL OR normalized_cell = '' THEN 1 ELSE 0 END) AS INTEGER) AS blank,
+        CAST(SUM(CASE WHEN ${isDistinct} THEN 1 ELSE 0 END) AS INTEGER) AS stale_version,
+        (SELECT CAST(count(*) AS INTEGER) FROM collisions) AS collision_groups,
+        COALESCE((SELECT CAST(sum(occupants) AS INTEGER) FROM collisions), 0) AS users_in_collisions
       FROM active
     `, [CELL_NORMALIZATION_VERSION]) as Array<{
       active_users: number;

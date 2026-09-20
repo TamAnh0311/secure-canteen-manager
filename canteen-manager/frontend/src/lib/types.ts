@@ -79,13 +79,15 @@ export interface MenuFormTemplateStatus {
 
 export interface Order {
   id: string;
-  // Date bucket (YYYY-MM-DD), server-stamped at ingestion in the deploy TZ.
   serviceDate: string;
   userId: string;
+  /** Prisoner name, joined from users table. */
+  userName?: string;
+  /** Prisoner legacy ID (mã phạm nhân). */
+  userLegacyId?: string;
   source: OrderSource;
   sheetId: string | null;
   status: OrderStatus;
-  // Integer VND = Σ snapshotted unit_price × quantity.
   totalAmount: number;
   paymentStatus: PaymentStatus;
   paymentMethod: PaymentMethod | null;
@@ -99,10 +101,10 @@ export interface OrderItem {
   id: string;
   orderId: string;
   menuItemId: string;
-  // Integer VND snapshot at order-create time.
+  /** Menu item name, joined from menu_items table. */
+  menuItemName?: string;
   unitPrice: number;
   category: ItemCategory;
-  // Portions ordered for this line; line total = unitPrice × quantity.
   quantity: number;
   createdAt: string;
 }
@@ -488,7 +490,7 @@ export interface PrisonerLookup {
   purchaseLimits: PurchaseLimits;
 }
 
-// ── Relative kiosk (public, read-only menu view) ────────────────────────────
+// ── Relative canteen (public, read-only menu view) ───────────────────────────
 
 export interface KioskMenuItem {
   id: string;
@@ -498,10 +500,10 @@ export interface KioskMenuItem {
   category: ItemCategory;
 }
 
-// What a relative sees at the kiosk: the prisoner's name (to confirm the right
+// What a relative sees at the canteen: the prisoner's name (to confirm the right
 // person) plus the single global active menu. bankEnabled is false when no canteen
-// account is configured — the kiosk then hides the bank tender (no QR could be shown).
-export interface KioskPrisonerView {
+// account is configured — the canteen page then hides the bank tender (no QR could be shown).
+export interface CanteenPrisonerView {
   name: string;
   prisonId: string;
   zone: string | null;

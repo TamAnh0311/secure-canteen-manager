@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppEnv } from '../config/env-validation';
+import { LocalFormRendererService } from './local-form-renderer';
 
 export interface GenerateFormInput {
   // The menu is global — the form is no longer tied to a session, so no session_id is sent.
@@ -33,6 +34,8 @@ export interface CatalogRowInput {
   menu_item_id: string;
   code_snapshot: string;
   short_label: string;
+  /** Integer VND price. Optional — only used by the local full-list renderer. */
+  price?: number;
 }
 
 export interface GenerateA5TemplateInput {
@@ -183,9 +186,17 @@ export class OmrClientService {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
 
-  constructor(private readonly config: ConfigService<AppEnv, true>) {
+  constructor(
+    private readonly config: ConfigService<AppEnv, true>,
+    private readonly localRenderer: LocalFormRendererService,
+  ) {
     this.baseUrl = this.config.get('OMR_SERVICE_URL', { infer: true });
     this.timeoutMs = this.config.get('OMR_SERVICE_TIMEOUT_MS', { infer: true });
+  }
+
+  /** Uses local renderer when OMR_SERVICE_URL is empty or 'local'. */
+  private get useLocal(): boolean {
+    return !this.baseUrl || this.baseUrl === 'local';
   }
 
   async generateForm(input: GenerateFormInput): Promise<GenerateFormResult> {
@@ -193,7 +204,18 @@ export class OmrClientService {
   }
 
   async generateA5Template(input: GenerateA5TemplateInput): Promise<GenerateFormResult> {
-    return this.post<GenerateFormResult>('/generate-a5-template', input);
+    if (this.useLocal) {
+      return this.localRenderer.renderTemplate(input);
+    }
+    try {
+      return await this.post<GenerateFormResult>('/generate-a5-template', input);
+    } catch (err) {
+      if (err instanceof OmrRetryableError) {
+        this.logger.warn('External OMR service unavailable, falling back to local renderer');
+        return this.localRenderer.renderTemplate(input);
+      }
+      throw err;
+    }
   }
 
   async renderIssuedBatch(input: RenderIssuedBatchInput): Promise<RenderIssuedBatchResult> {

@@ -41,7 +41,7 @@ export class ThresholdConfig {
 
   // Transitional legacy A4 ROI retained for migration compatibility. New issuance and scan
   // resolution must use the immutable template bound to the issued form.
-  @Column({ name: 'roi_template', type: 'jsonb', nullable: true })
+  @Column({ name: 'roi_template', type: 'simple-json', nullable: true })
   roiTemplate!: object | null;
 
   // Identifies the template generation version for audit purposes
@@ -49,9 +49,9 @@ export class ThresholdConfig {
   roiVersion!: string | null;
 
   // When the form was last generated — used to detect stale templates
-  @Column({ name: 'roi_generated_at', type: 'timestamptz', nullable: true })
+  @Column({ name: 'roi_generated_at', type: 'datetime', nullable: true })
   roiGeneratedAt!: Date | null;
 
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
   updatedAt!: Date;
 }

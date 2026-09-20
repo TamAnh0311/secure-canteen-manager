@@ -4,7 +4,7 @@ import { ITEM_CATEGORIES, type PurchaseLimitCalculation } from '@/lib/purchase-l
 
 export function PurchaseLimitSummary({ calculation, namespace }: {
   calculation: PurchaseLimitCalculation;
-  namespace: 'kiosk' | 'counter' | 'verify';
+  namespace: 'canteen' | 'counter' | 'verify';
 }) {
   const { t } = useTranslation(namespace);
   return (

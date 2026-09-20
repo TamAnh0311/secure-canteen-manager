@@ -38,6 +38,19 @@ export function getOrder(id: string): Promise<OrderWithItems> {
   return apiFetch<OrderWithItems>(`/orders/${id}`);
 }
 
+/** Dashboard aggregate stats returned by the orders/stats endpoint. */
+export interface DashboardStats {
+  totalOrders: number;
+  pendingOrders: number;
+  paidOrders: number;
+  totalRevenue: number;
+}
+
+/** Fetch dashboard stats for a service-date range. */
+export function getStats(params: { dateFrom?: string; dateTo?: string } = {}): Promise<DashboardStats> {
+  return apiFetch<DashboardStats>(`/orders/stats${qs({ dateFrom: params.dateFrom, dateTo: params.dateTo })}`);
+}
+
 // ADMIN-only batch of delivery vouchers for a service date (defaults to today
 // server-side). Returns every PAID active voucher; the page filters zone/cell
 // client-side from the result set.

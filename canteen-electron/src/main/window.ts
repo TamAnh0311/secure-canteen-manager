@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
 
 let mainWindow: BrowserWindow | null = null;
@@ -27,6 +27,14 @@ export function createMainWindow(backendUrl: string): BrowserWindow {
   });
 
   mainWindow.loadURL(backendUrl);
+
+  // Hide to tray instead of quitting — the backend keeps running.
+  mainWindow.on('close', (event) => {
+    if (!(app as unknown as { isQuitting?: boolean }).isQuitting) {
+      event.preventDefault();
+      mainWindow?.hide();
+    }
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;

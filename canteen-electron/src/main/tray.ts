@@ -51,7 +51,8 @@ export function createTray(backendUrl: string): Tray {
 
   tray.setContextMenu(contextMenu);
 
-  tray.on('double-click', () => {
+  // Single-click or double-click on tray icon reopens the window.
+  const showWindow = (): void => {
     const win = getMainWindow();
     if (win) {
       win.show();
@@ -59,7 +60,9 @@ export function createTray(backendUrl: string): Tray {
     } else {
       createMainWindow(backendUrl);
     }
-  });
+  };
+  tray.on('click', showWindow);
+  tray.on('double-click', showWindow);
 
   return tray;
 }

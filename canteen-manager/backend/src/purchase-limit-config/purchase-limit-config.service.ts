@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { MAX_VND } from '../common/numeric.transformer';
+import { sqliteSafeLock } from '../common/sqlite-safe-lock';
 import { PurchaseLimitConfig } from './purchase-limit-config.entity';
 import { UpdatePurchaseLimitConfigDto } from './dto/update-purchase-limit-config.dto';
 
@@ -29,20 +30,22 @@ export class PurchaseLimitConfigService {
     const repo = manager?.getRepository(PurchaseLimitConfig) ?? this.repo;
     const existing = await repo.findOne({
       where: { singleton: true },
-      ...(manager ? { lock: { mode: 'pessimistic_read' as const } } : {}),
+      ...(manager ? sqliteSafeLock('pessimistic_read') : {}),
     });
     if (existing) return existing;
 
+    // Amount defaults use 0 (not null) because the SQLite migration defines these
+    // columns as NOT NULL DEFAULT 0, even though the entity allows null for Postgres.
     const row = repo.create({
       singleton: true,
       prisonerFoodEnabled: true,
       prisonerFoodAmount: 100_000,
       prisonerEssentialEnabled: false,
-      prisonerEssentialAmount: null,
+      prisonerEssentialAmount: 0,
       visitorFoodEnabled: true,
       visitorFoodAmount: 500_000,
       visitorEssentialEnabled: false,
-      visitorEssentialAmount: null,
+      visitorEssentialAmount: 0,
     });
     try {
       return await repo.save(row);
@@ -50,7 +53,7 @@ export class PurchaseLimitConfigService {
       if (isUniqueViolation(error)) {
         const winner = await repo.findOne({
           where: { singleton: true },
-          ...(manager ? { lock: { mode: 'pessimistic_read' as const } } : {}),
+          ...(manager ? sqliteSafeLock('pessimistic_read') : {}),
         });
         if (winner) return winner;
       }

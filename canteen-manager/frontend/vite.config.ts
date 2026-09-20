@@ -13,6 +13,7 @@ export default defineConfig({
     sourcemap: false,
   },
   server: {
+    host: true, // listen on 0.0.0.0 so other devices on the LAN can reach it
     port: 5173,
     proxy: {
       '/api': {

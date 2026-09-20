@@ -10,11 +10,6 @@ export class InitialSchema00000000000001 implements MigrationInterface {
   name = 'InitialSchema00000000000001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    // Enable WAL mode for better concurrent read performance from tablet kiosk requests.
-    await queryRunner.query(`PRAGMA journal_mode=WAL`);
-    await queryRunner.query(`PRAGMA busy_timeout=5000`);
-    await queryRunner.query(`PRAGMA foreign_keys=ON`);
-
     await queryRunner.query(`
       CREATE TABLE "operators" (
         "id"            VARCHAR(36)   NOT NULL,
@@ -73,7 +68,7 @@ export class InitialSchema00000000000001 implements MigrationInterface {
         "id"               VARCHAR(36)  NOT NULL,
         "user_id"          VARCHAR(36)  NOT NULL,
         "type"             VARCHAR(20)  NOT NULL
-                           CHECK("type" IN ('topup', 'payment', 'refund', 'adjustment')),
+                           CHECK("type" IN ('topup', 'order_debit', 'reversal')),
         "amount"           REAL         NOT NULL,
         "balance_after"    REAL         NOT NULL,
         "method"           VARCHAR(50),
@@ -110,11 +105,11 @@ export class InitialSchema00000000000001 implements MigrationInterface {
         "id"                       VARCHAR(36)  NOT NULL,
         "service_date"             VARCHAR(20)  NOT NULL,
         "user_id"                  VARCHAR(36)  NOT NULL,
-        "source"                   VARCHAR(30)  NOT NULL DEFAULT 'kiosk'
-                                   CHECK("source" IN ('kiosk', 'counter', 'scan', 'order_form', 'scanner')),
+        "source"                   VARCHAR(30)  NOT NULL DEFAULT 'omr'
+                                   CHECK("source" IN ('omr', 'scanner', 'relative', 'manual')),
         "sheet_id"                 VARCHAR(36),
         "status"                   VARCHAR(20)  NOT NULL DEFAULT 'pending'
-                                   CHECK("status" IN ('pending', 'paid', 'delivered', 'rejected', 'superseded')),
+                                   CHECK("status" IN ('active', 'superseded', 'rejected')),
         "total_amount"             REAL         NOT NULL DEFAULT 0,
         "payment_status"           VARCHAR(20)  NOT NULL DEFAULT 'unpaid'
                                    CHECK("payment_status" IN ('unpaid', 'paid')),
@@ -204,6 +199,80 @@ export class InitialSchema00000000000001 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
+      CREATE TABLE "threshold_config" (
+        "id"               VARCHAR(36)  NOT NULL,
+        "singleton"        INTEGER      NOT NULL DEFAULT 1 UNIQUE,
+        "icr_threshold"    REAL         NOT NULL DEFAULT 0.85,
+        "omr_empty_max"    REAL         NOT NULL DEFAULT 0.30,
+        "omr_ticked_min"   REAL         NOT NULL DEFAULT 0.70,
+        "digit_box_count"  INTEGER      NOT NULL DEFAULT 6,
+        "roi_template"     TEXT,
+        "roi_version"      VARCHAR(50),
+        "roi_generated_at" DATETIME,
+        "updated_at"       DATETIME     NOT NULL DEFAULT (datetime('now')),
+        CONSTRAINT "PK_threshold_config_id" PRIMARY KEY ("id")
+      )
+    `);
+
+    await queryRunner.query(`
+      CREATE TABLE "omr_form_templates" (
+        "id"             VARCHAR(36)  NOT NULL,
+        "revision"       VARCHAR(64)  NOT NULL,
+        "mode"           VARCHAR(20)  NOT NULL
+                         CHECK("mode" IN ('code', 'full_list')),
+        "paper_size"     VARCHAR(8)   NOT NULL DEFAULT 'A5',
+        "orientation"    VARCHAR(20)  NOT NULL
+                         CHECK("orientation" IN ('portrait', 'landscape')),
+        "geometry"       TEXT         NOT NULL,
+        "geometry_hash"  CHAR(64)     NOT NULL,
+        "catalog_hash"   CHAR(64),
+        "is_active"      INTEGER      NOT NULL DEFAULT 0,
+        "activated_at"   DATETIME,
+        "retired_at"     DATETIME,
+        "created_at"     DATETIME     NOT NULL DEFAULT (datetime('now')),
+        CONSTRAINT "PK_omr_form_templates_id" PRIMARY KEY ("id"),
+        CONSTRAINT "UQ_omr_form_templates_revision" UNIQUE ("revision"),
+        CONSTRAINT "UQ_omr_form_templates_geometry_hash" UNIQUE ("geometry_hash")
+      )
+    `);
+
+    await queryRunner.query(`
+      CREATE TABLE "omr_form_template_rows" (
+        "id"                   VARCHAR(36)  NOT NULL,
+        "template_id"          VARCHAR(36)  NOT NULL,
+        "row_index"            INTEGER      NOT NULL,
+        "menu_item_id"         VARCHAR(36)  NOT NULL,
+        "code_snapshot"        VARCHAR(20)  NOT NULL,
+        "short_label_snapshot" VARCHAR(100) NOT NULL,
+        "position"             INTEGER      NOT NULL,
+        "created_at"           DATETIME     NOT NULL DEFAULT (datetime('now')),
+        CONSTRAINT "PK_omr_form_template_rows_id" PRIMARY KEY ("id"),
+        CONSTRAINT "FK_omr_template_rows_template" FOREIGN KEY ("template_id")
+          REFERENCES "omr_form_templates"("id") ON DELETE CASCADE
+      )
+    `);
+
+    await queryRunner.query(`
+      CREATE TABLE "issued_omr_forms" (
+        "id"           VARCHAR(36)  NOT NULL,
+        "token"        VARCHAR(36)  NOT NULL,
+        "user_id"      VARCHAR(36)  NOT NULL,
+        "service_date" VARCHAR(20)  NOT NULL,
+        "roi_version"  VARCHAR(64)  NOT NULL,
+        "template_id"  VARCHAR(36),
+        "form_mode"    VARCHAR(20),
+        "issued_by"    VARCHAR(36)  NOT NULL,
+        "status"       VARCHAR(20)  NOT NULL DEFAULT 'issued'
+                       CHECK("status" IN ('issued', 'void')),
+        "voided_at"    DATETIME,
+        "void_reason"  VARCHAR(100),
+        "issued_at"    DATETIME     NOT NULL DEFAULT (datetime('now')),
+        CONSTRAINT "PK_issued_omr_forms_id" PRIMARY KEY ("id"),
+        CONSTRAINT "UQ_issued_omr_forms_token" UNIQUE ("token")
+      )
+    `);
+
+    await queryRunner.query(`
       CREATE TABLE "sync_runs" (
         "id"          VARCHAR(36)  NOT NULL,
         "started_at"  DATETIME     NOT NULL DEFAULT (datetime('now')),
@@ -221,6 +290,10 @@ export class InitialSchema00000000000001 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP TABLE IF EXISTS "sync_runs"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "issued_omr_forms"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "omr_form_template_rows"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "omr_form_templates"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "threshold_config"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "purchase_limit_config"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "payment_config"`);
     await queryRunner.query(`DROP TABLE IF EXISTS "order_tg8_documents"`);

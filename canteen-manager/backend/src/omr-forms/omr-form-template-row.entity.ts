@@ -9,24 +9,24 @@ export class OmrFormTemplateRow {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'template_id', type: 'uuid' })
+  @Column({ name: 'template_id', type: 'varchar' })
   templateId!: string;
 
   @ManyToOne(() => OmrFormTemplate, (template) => template.rows, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'template_id' })
   template!: OmrFormTemplate;
 
-  @Column({ name: 'row_index', type: 'smallint' })
+  @Column({ name: 'row_index', type: 'integer' })
   rowIndex!: number;
 
-  @Column({ name: 'menu_item_id', type: 'uuid' })
+  @Column({ name: 'menu_item_id', type: 'varchar' })
   menuItemId!: string;
 
   @ManyToOne(() => MenuItem, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'menu_item_id' })
   menuItem!: MenuItem;
 
-  @Column({ name: 'code_snapshot', type: 'char', length: 3 })
+  @Column({ name: 'code_snapshot', type: 'varchar', length: 3 })
   codeSnapshot!: string;
 
   @Column({ name: 'short_label_snapshot', type: 'varchar', length: 100 })

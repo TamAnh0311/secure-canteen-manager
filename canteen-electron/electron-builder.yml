@@ -16,10 +16,8 @@ extraResources:
     to: backend
     filter:
       - "**/*"
-  - from: ../canteen-manager/backend/node_modules
-    to: backend-node_modules
-    filter:
-      - "**/*"
+  - from: ../canteen-manager/backend/backend-deps.tar
+    to: backend-deps.tar
   - from: ../canteen-manager/frontend/dist
     to: frontend
     filter:

@@ -61,10 +61,11 @@ export function OrderDetailDialog({ order, onClose }: OrderDetailDialogProps) {
                 className="w-8 h-8 rounded-full bg-accent-subtle text-primary grid place-items-center font-semibold text-xs shrink-0"
                 aria-hidden="true"
               >
-                {data.userId.slice(0, 2).toUpperCase()}
+                {(data.userName ?? data.userId).slice(0, 2).toUpperCase()}
               </div>
               <div>
-                <div className="font-medium font-mono">{data.userId}</div>
+                <div className="font-medium">{data.userName ?? data.userId}</div>
+                {data.userLegacyId && <div className="text-xs text-muted-fg font-mono">{data.userLegacyId}</div>}
                 <div className="text-xs text-muted-fg capitalize">
                   {data.sheetId
                     ? t('dialogSourceSheet', { source: data.source, sheetId: data.sheetId })
@@ -91,9 +92,10 @@ export function OrderDetailDialog({ order, onClose }: OrderDetailDialogProps) {
                         <Td>
                           <span className="font-mono text-xs text-muted-fg">{idx + 1}</span>
                         </Td>
-                        <Td className="font-medium">{item.menuItemId}</Td>
+                        <Td className="font-medium">{item.menuItemName ?? item.menuItemId.slice(0, 8)}</Td>
+                        <Td className="text-muted-fg text-xs tabular-nums text-center">{item.quantity > 1 ? `×${item.quantity}` : ''}</Td>
                         <Td numeric className="text-muted-fg text-xs tabular-nums">
-                          {formatVnd(item.unitPrice)}
+                          {formatVnd(item.unitPrice * item.quantity)}
                         </Td>
                       </Tr>
                     ))}

@@ -5,7 +5,7 @@ import { ITEM_CATEGORIES, type PurchaseLimitCalculation } from '@/lib/purchase-l
 
 export function PurchaseLimitExceededBanner({ calculation, namespace, className }: {
   calculation: PurchaseLimitCalculation;
-  namespace: 'kiosk' | 'counter' | 'verify';
+  namespace: 'canteen' | 'counter' | 'verify';
   className?: string;
 }) {
   const { t } = useTranslation(namespace);

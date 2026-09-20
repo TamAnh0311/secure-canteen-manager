@@ -2,27 +2,63 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { menu } from '@/lib/api';
 import { useQuery } from '@/lib/use-query';
-import { formatDate, formatTime } from '@/lib/format';
-import { Banner, Button, PageHeader, Spinner } from '@/ui';
-import { DateRangePicker, tomorrowRange, type DateRange } from '@/features/_shared/date-range-picker';
-import '@/styles/print.css';
+import { formatDate, formatTime, formatNumber } from '@/lib/format';
+import { presetRange, previousPeriod, type RangePreset } from '@/lib/date-ranges';
+import { Banner, Button, Card, Input, PageHeader, Spinner } from '@/ui';
 import { AssignedZoneScope, useAssignedZone } from '@/features/_shared/assigned-zone-scope';
+import '@/styles/print.css';
+
+const PRESETS: RangePreset[] = ['shift', 'day', 'week', 'month', 'quarter', 'year'];
 
 export function KitchenSummaryPage() {
   const { t } = useTranslation('kitchen');
   const { t: tCommon } = useTranslation('common');
   const assignedZone = useAssignedZone();
-  // The kitchen sheet covers one service date; the range collapses to its end
-  // bound so the printed list is always a single cooking day.
-  const [range, setRange] = useState<DateRange>(tomorrowRange);
-  const serviceDate = range.dateTo;
 
-  const summaryQuery = useQuery(() => menu.getSummary(serviceDate), [serviceDate]);
+  const [activePreset, setActivePreset] = useState<RangePreset>('day');
+  const [dateFrom, setDateFrom] = useState(() => presetRange('day').dateFrom);
+  const [dateTo, setDateTo] = useState(() => presetRange('day').dateTo);
+  const [compare, setCompare] = useState(false);
+
+  const summaryQuery = useQuery(
+    () => menu.getSummaryRange(dateFrom, dateTo),
+    [dateFrom, dateTo],
+  );
+
+  const prev = previousPeriod(dateFrom, dateTo);
+  const compareQuery = useQuery(
+    () => compare ? menu.getSummaryRange(prev.dateFrom, prev.dateTo) : Promise.resolve([]),
+    [compare, prev.dateFrom, prev.dateTo],
+  );
 
   const summaryItems = summaryQuery.data ?? [];
+  const compareItems = compareQuery.data ?? [];
   const totalPortions = summaryItems.reduce((acc, item) => acc + item.count, 0);
+  const compareTotalPortions = compareItems.reduce((acc, item) => acc + item.count, 0);
 
   const generatedAt = formatTime(new Date(), { timeStyle: 'short' } as Intl.DateTimeFormatOptions);
+
+  /** Build a map of menuItemId → count for the comparison period. */
+  const compareMap = new Map(compareItems.map((i) => [i.menuItemId, i.count]));
+
+  /** Format a delta indicator: +N, -N, or blank. */
+  function delta(current: number, previous: number | undefined): string {
+    if (previous === undefined || previous === current) return '';
+    const diff = current - previous;
+    return diff > 0 ? `+${diff}` : String(diff);
+  }
+
+  function deltaClass(current: number, previous: number | undefined): string {
+    if (previous === undefined || previous === current) return '';
+    return current > previous ? 'text-green-600' : 'text-red-600';
+  }
+
+  function selectPreset(p: RangePreset) {
+    setActivePreset(p);
+    const r = presetRange(p);
+    setDateFrom(r.dateFrom);
+    setDateTo(r.dateTo);
+  }
 
   return (
     <>
@@ -32,18 +68,57 @@ export function KitchenSummaryPage() {
           title={t('pageTitle')}
           subtitle={t('pageSubtitle')}
           actions={
-            <div className="flex items-center gap-2">
-              <DateRangePicker
-                value={{ dateFrom: serviceDate, dateTo: serviceDate }}
-                onChange={(r) => setRange({ dateFrom: r.dateTo, dateTo: r.dateTo })}
-              />
-              <Button variant="primary" size="sm" onClick={() => window.print()}>
-                {t('printSummary')}
-              </Button>
-            </div>
+            <Button variant="primary" size="sm" onClick={() => window.print()}>
+              {t('printSummary')}
+            </Button>
           }
         />
+
+        {/* Preset buttons */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {PRESETS.map((p) => (
+            <Button
+              key={p}
+              size="sm"
+              variant={activePreset === p ? 'primary' : 'outline'}
+              onClick={() => selectPreset(p)}
+            >
+              {t(`preset_${p}`)}
+            </Button>
+          ))}
+        </div>
+
+        {/* Custom date range + compare toggle */}
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <Input
+            type="date"
+            aria-label={t('dateFrom')}
+            value={dateFrom}
+            max={dateTo}
+            onChange={(e) => { setDateFrom(e.target.value); setActivePreset('day'); }}
+            className="w-40"
+          />
+          <span className="text-muted-fg">–</span>
+          <Input
+            type="date"
+            aria-label={t('dateTo')}
+            value={dateTo}
+            min={dateFrom}
+            onChange={(e) => { setDateTo(e.target.value); setActivePreset('day'); }}
+            className="w-40"
+          />
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={compare}
+              onChange={(e) => setCompare(e.target.checked)}
+              className="rounded"
+            />
+            {t('comparePrevious')}
+          </label>
+        </div>
       </div>
+
       <div className="no-print"><AssignedZoneScope /></div>
 
       {summaryQuery.error && (
@@ -65,14 +140,26 @@ export function KitchenSummaryPage() {
           <div>
             <h2 className="text-[22px] font-semibold uppercase">{t('summaryHeading')}</h2>
             <div className="text-[13px] text-muted-fg mt-0.5">
-              {formatDate(serviceDate, { day: '2-digit', month: 'short', year: 'numeric' })}
+              {dateFrom === dateTo
+                ? formatDate(dateFrom, { day: '2-digit', month: 'short', year: 'numeric' })
+                : `${formatDate(dateFrom, { day: '2-digit', month: 'short' })} – ${formatDate(dateTo, { day: '2-digit', month: 'short', year: 'numeric' })}`}
               {' · '}
               {t('generatedAt', { time: generatedAt })}
             </div>
+            {compare && (
+              <div className="text-[11px] text-muted-fg mt-0.5">
+                {t('comparedWith')}: {formatDate(prev.dateFrom, { day: '2-digit', month: 'short' })} – {formatDate(prev.dateTo, { day: '2-digit', month: 'short', year: 'numeric' })}
+              </div>
+            )}
           </div>
           <div className="text-right shrink-0">
             <div className="text-xs text-muted-fg">{t('totalOrdersLabel')}</div>
-            <div className="font-mono text-[30px] font-semibold leading-tight">{totalPortions}</div>
+            <div className="font-mono text-[30px] font-semibold leading-tight">{formatNumber(totalPortions)}</div>
+            {compare && compareTotalPortions > 0 && (
+              <div className={`text-xs font-mono ${deltaClass(totalPortions, compareTotalPortions)}`}>
+                {delta(totalPortions, compareTotalPortions)} ({compareTotalPortions})
+              </div>
+            )}
           </div>
         </div>
 
@@ -89,27 +176,41 @@ export function KitchenSummaryPage() {
               <th className="bg-foreground text-card text-right px-3 py-2.5 text-[13px] font-semibold font-mono">
                 {t('colPortions')}
               </th>
+              {compare && (
+                <th className="bg-foreground text-card text-right px-3 py-2.5 text-[13px] font-semibold font-mono">
+                  {t('colDelta')}
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {summaryItems.length === 0 ? (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-center text-sm text-muted-fg">
+                <td colSpan={compare ? 4 : 3} className="px-3 py-6 text-center text-sm text-muted-fg">
                   {assignedZone ? tCommon('assignedZoneEmpty', { zone: assignedZone }) : t('noData')}
                 </td>
               </tr>
             ) : (
               [...summaryItems]
                 .sort((a, b) => a.position - b.position)
-                .map((item, idx) => (
-                  <tr key={item.menuItemId}>
-                    <td className="px-3 py-3 border-b border-border font-mono text-sm">{idx + 1}</td>
-                    <td className="px-3 py-3 border-b border-border text-base">{item.name}</td>
-                    <td className="px-3 py-3 border-b border-border text-right font-mono text-[22px] font-semibold">
-                      {item.count}
-                    </td>
-                  </tr>
-                ))
+                .map((item, idx) => {
+                  const prev = compareMap.get(item.menuItemId);
+                  return (
+                    <tr key={item.menuItemId}>
+                      <td className="px-3 py-3 border-b border-border font-mono text-sm">{idx + 1}</td>
+                      <td className="px-3 py-3 border-b border-border text-base">{item.name}</td>
+                      <td className="px-3 py-3 border-b border-border text-right font-mono text-[22px] font-semibold">
+                        {item.count}
+                      </td>
+                      {compare && (
+                        <td className={`px-3 py-3 border-b border-border text-right font-mono text-sm ${deltaClass(item.count, prev)}`}>
+                          {delta(item.count, prev)}
+                          {prev !== undefined && <span className="text-gray-400 ml-1">({prev})</span>}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
             )}
             {/* Total row */}
             {summaryItems.length > 0 && (
@@ -119,8 +220,14 @@ export function KitchenSummaryPage() {
                   {t('totalPortions')}
                 </td>
                 <td className="px-3 py-3 border-t-2 border-foreground text-right font-mono font-bold text-[18px]">
-                  {totalPortions}
+                  {formatNumber(totalPortions)}
                 </td>
+                {compare && (
+                  <td className={`px-3 py-3 border-t-2 border-foreground text-right font-mono font-bold text-sm ${deltaClass(totalPortions, compareTotalPortions)}`}>
+                    {delta(totalPortions, compareTotalPortions)}
+                    {compareTotalPortions > 0 && <span className="text-gray-400 ml-1">({formatNumber(compareTotalPortions)})</span>}
+                  </td>
+                )}
               </tr>
             )}
           </tbody>

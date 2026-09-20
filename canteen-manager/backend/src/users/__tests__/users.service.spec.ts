@@ -84,7 +84,10 @@ describe('UsersService.scannerIdentityReadiness()', () => {
       getRawOne: jest.fn(async () => raw),
     });
     return {
-      service: new UsersService({ createQueryBuilder: jest.fn(() => qb) } as unknown as Repository<User>),
+      service: new UsersService({
+        createQueryBuilder: jest.fn(() => qb),
+        manager: { connection: { options: { type: 'postgres' } } },
+      } as unknown as Repository<User>),
       qb,
     };
   }
@@ -139,7 +142,7 @@ describe('UsersService directory balance join', () => {
 
     // The filter must target u.zone, not the dropped u.department column.
     expect(qb.andWhere).toHaveBeenCalledWith(
-      'u.zone ILIKE :zone',
+      'LOWER(u.zone) LIKE LOWER(:zone)',
       { zone: '%Khu A%' },
     );
   });
@@ -192,16 +195,16 @@ describe('UsersService issuance roster authority', () => {
 
     expect(h.qb.where).toHaveBeenCalledWith('u.is_active = true');
     expect(h.qb.andWhere).toHaveBeenCalledWith(
-      'BTRIM(u.zone) = :rosterZone',
+      'TRIM(u.zone) = :rosterZone',
       { rosterZone: 'Khu A' },
     );
     expect(h.qb.andWhere).toHaveBeenCalledWith(
-      "NULLIF(BTRIM(u.cell), '') = :rosterCell",
+      "NULLIF(TRIM(u.cell), '') = :rosterCell",
       { rosterCell: 'A-12' },
     );
-    expect(h.qb.orderBy).toHaveBeenCalledWith('BTRIM(u.zone)', 'ASC');
+    expect(h.qb.orderBy).toHaveBeenCalledWith('TRIM(u.zone)', 'ASC');
     expect(h.qb.addOrderBy.mock.calls).toEqual([
-      ["NULLIF(BTRIM(u.cell), '')", 'ASC', 'NULLS FIRST'],
+      ["NULLIF(TRIM(u.cell), '')", 'ASC', 'NULLS FIRST'],
       ['u.name', 'ASC'],
       ['u.legacyId', 'ASC'],
       ['u.id', 'ASC'],
@@ -222,7 +225,7 @@ describe('UsersService issuance roster authority', () => {
 
     const result = await h.service.listIssuanceRoster(actor, 'Khu A', null);
 
-    expect(h.qb.andWhere).toHaveBeenCalledWith("NULLIF(BTRIM(u.cell), '') IS NULL");
+    expect(h.qb.andWhere).toHaveBeenCalledWith("NULLIF(TRIM(u.cell), '') IS NULL");
     expect(result.map((row) => row.cell)).toEqual([null, null]);
   });
 
@@ -307,7 +310,10 @@ describe('UsersService generic normalized-cell authority', () => {
       collision_groups: '1',
       users_in_collisions: '2',
     }]);
-    const service = new UsersService({ query } as unknown as Repository<User>);
+    const service = new UsersService({
+      query,
+      manager: { connection: { options: { type: 'postgres' } } },
+    } as unknown as Repository<User>);
 
     await expect(service.assertGenericCellIdentityReady()).rejects.toMatchObject({
       response: {
@@ -335,7 +341,10 @@ describe('UsersService generic normalized-cell authority', () => {
       collision_groups: 0,
       users_in_collisions: 0,
     }]);
-    const service = new UsersService({ query } as unknown as Repository<User>);
+    const service = new UsersService({
+      query,
+      manager: { connection: { options: { type: 'postgres' } } },
+    } as unknown as Repository<User>);
 
     await expect(service.assertGenericCellIdentityReady()).resolves.toMatchObject({
       activeUsers: 8,

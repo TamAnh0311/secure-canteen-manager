@@ -32,7 +32,7 @@ describe('OperatorZoneAccessService', () => {
     const qb = { andWhere: jest.fn().mockReturnThis() };
     service.scopeByUser(qb as never, actor(OperatorRole.OPERATOR, 'Khu A1'), 'u.zone');
     expect(qb.andWhere).toHaveBeenCalledWith(
-      'BTRIM(u.zone) = :operatorZone',
+      'TRIM(u.zone) = :operatorZone',
       { operatorZone: 'Khu A1' },
     );
   });
@@ -50,7 +50,7 @@ describe('OperatorZoneAccessService', () => {
       { operatorZone: 'Khu A1' },
     );
     expect(qb.andWhere.mock.calls[0][0]).toContain(
-      'BTRIM("zone_scope_user"."zone") = :operatorZone',
+      'TRIM("zone_scope_user"."zone") = :operatorZone',
     );
   });
 

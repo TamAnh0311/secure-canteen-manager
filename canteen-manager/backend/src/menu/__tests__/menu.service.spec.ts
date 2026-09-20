@@ -4,6 +4,7 @@ import { Repository, DataSource, EntityManager } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 import { MenuService } from '../menu.service';
 import { MenuItem } from '../menu-item.entity';
+import { ThresholdConfigService } from '../../config/threshold-config.service';
 import { CreateMenuItemDto } from '../dto/create-menu-item.dto';
 import { UpdateMenuItemDto } from '../dto/update-menu-item.dto';
 import { MAX_VND } from '../../common/numeric.transformer';
@@ -60,6 +61,7 @@ function buildService(): Doubles {
   // Transaction double: runs the callback against an EntityManager that proxies
   // the same in-memory store, mirroring the production two-phase position writes.
   const em = {
+    connection: { options: { type: 'better-sqlite3' } },
     create: (_e: unknown, data: Partial<MenuItem>) => (repo.create as jest.Mock)(data),
     find: async (_e: unknown, opts?: { order?: { position?: 'ASC' | 'DESC' } }) =>
       (repo.find as jest.Mock)(opts),
@@ -68,13 +70,15 @@ function buildService(): Doubles {
     save: async (_e: unknown, payload: MenuItem | MenuItem[]) =>
       Array.isArray(payload) ? payload.map(persist) : persist(payload),
     remove: async (_e: unknown, item: MenuItem) => (repo.remove as jest.Mock)(item),
+    query: jest.fn(async () => []),
   } as unknown as EntityManager;
 
   const dataSource = {
     transaction: jest.fn(async (cb: (m: EntityManager) => Promise<unknown>) => cb(em)),
   } as unknown as DataSource;
 
-  const svc = new MenuService(repo, dataSource);
+  const thresholdConfig = {} as unknown as ThresholdConfigService;
+  const svc = new MenuService(repo, thresholdConfig, dataSource);
   return { svc, repo, store };
 }
 
@@ -230,7 +234,8 @@ describe('MenuService.getSummary', () => {
       createQueryBuilder: jest.fn(() => qb),
     } as unknown as DataSource;
     const repo = {} as unknown as Repository<MenuItem>;
-    return new MenuService(repo, dataSource);
+    const thresholdConfig = {} as unknown as ThresholdConfigService;
+    return new MenuService(repo, thresholdConfig, dataSource);
   }
 
   function tomorrowInDeployTz(): string {

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#1e40af"/>
+  <path d="M20 16h24a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4V20a4 4 0 0 1 4-4z" fill="#3b82f6" opacity="0.4"/>
+  <text x="32" y="44" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="bold" fill="white">CM</text>
+</svg>

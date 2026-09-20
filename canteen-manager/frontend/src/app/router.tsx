@@ -8,12 +8,16 @@ import { KitchenSummaryPage } from '@/features/kitchen-summary/kitchen-summary-p
 import { MenuConfigPage } from '@/features/menu-config/menu-config-page';
 import { UsersPage } from '@/features/users/users-page';
 import { CounterPage } from '@/features/counter/counter-page';
-import { KioskPage } from '@/features/kiosk/kiosk-page';
+import { CanteenPage } from '@/features/canteen/canteen-page';
 import { AccountsAuditPage } from '@/features/accounts/accounts-audit-page';
 import { PaymentConfigPage } from '@/features/payment-config/payment-config-page';
 import { VouchersPage } from '@/features/vouchers/vouchers-page';
-import { OrderFormPage } from '@/features/order-form/order-form-page';
 import { OperatorsPage } from '@/features/operators/operators-page';
+import { PhoneScanPage } from '@/features/phone-scan/phone-scan-page';
+import { FormPrintPage } from '@/features/form-print/form-print-page';
+import { DataSyncPage } from '@/features/data-sync/data-sync-page';
+import { AuditLogPage } from '@/features/audit-log/audit-log-page';
+import { FinancialReportPage } from '@/features/financial-report/financial-report-page';
 
 export const router = createBrowserRouter([
   {
@@ -22,8 +26,13 @@ export const router = createBrowserRouter([
   },
   {
     // Public, no auth — relatives browse prisoner menus without logging in.
-    path: '/kiosk',
-    element: <KioskPage />,
+    path: '/canteen',
+    element: <CanteenPage />,
+  },
+  {
+    // Public, no auth — mobile phone scan page.
+    path: '/scan',
+    element: <PhoneScanPage />,
   },
   {
     element: <ProtectedRoute />,
@@ -42,16 +51,14 @@ export const router = createBrowserRouter([
             element: <AdminRoute />,
             children: [
               { path: 'menu',           element: <MenuConfigPage /> },
+              { path: 'form-print',     element: <FormPrintPage /> },
+              { path: 'data-sync',      element: <DataSyncPage /> },
               { path: 'audit',          element: <AccountsAuditPage /> },
               { path: 'payment-config', element: <PaymentConfigPage /> },
               { path: 'vouchers',       element: <VouchersPage /> },
               { path: 'operators',      element: <OperatorsPage /> },
-            ],
-          },
-          {
-            element: <RoleRoute roles={['operator', 'admin']} />,
-            children: [
-              { path: 'order-form', element: <OrderFormPage /> },
+              { path: 'audit-log',     element: <AuditLogPage /> },
+              { path: 'financial',    element: <FinancialReportPage /> },
             ],
           },
           {

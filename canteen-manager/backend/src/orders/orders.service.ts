@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
+import { sqliteSafeLock } from '../common/sqlite-safe-lock';
 import { Order, OrderStatus, PaymentStatus } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { MenuService } from '../menu/menu.service';
@@ -24,6 +25,7 @@ import {
 import { createSnapshotAtAcceptance } from './tg8-snapshot';
 import { OperatorPublic } from '../operators/operator-public';
 import { OperatorZoneAccessService } from '../auth/operator-zone-access.service';
+import { GetStatsDto } from './dto/get-stats.dto';
 
 // One requested order line: a menu item and how many portions of it. Duplicates of the same
 // menuItemId are aggregated (quantities summed) downstream. quantity is validated as an integer
@@ -76,6 +78,14 @@ export interface DeliveryVoucher {
   totalAmount: number; // Σ order.total_amount across the prisoner's PAID active orders for date
   remainingBalance: number; // prisoner_accounts.balance snapshot at capture time (0 if no account)
   printedAt: string; // ISO timestamp the balance/voucher was captured
+}
+
+/** Dashboard aggregate stats returned by GET /api/orders/stats. */
+export interface DashboardStats {
+  totalOrders: number;
+  pendingOrders: number;
+  paidOrders: number;
+  totalRevenue: number;
 }
 
 // Null-last ascending string compare, so prisoners without a zone/cell sort after those with one.
@@ -201,7 +211,7 @@ export class OrdersService {
       const menuItems = await m.find(MenuItem, {
         where: { id: In(selectedIds) },
         order: { id: 'ASC' },
-        lock: { mode: 'pessimistic_read' },
+        ...sqliteSafeLock('pessimistic_read'),
       });
       const menuById = new Map(menuItems.map((item) => [item.id, item]));
       for (const id of selectedIds) {
@@ -417,7 +427,7 @@ export class OrdersService {
     return this.dataSource.transaction(async (m) => {
       const order = await m.findOne(Order, {
         where: { id: orderId },
-        lock: { mode: 'pessimistic_write' },
+        ...sqliteSafeLock('pessimistic_write'),
       });
       this.assertPending(order);
       // Strict amount integrity: a mismatched entered amount blocks the accept (the order stays
@@ -464,7 +474,7 @@ export class OrdersService {
     return this.dataSource.transaction(async (m) => {
       const order = await m.findOne(Order, {
         where: { id: orderId },
-        lock: { mode: 'pessimistic_write' },
+        ...sqliteSafeLock('pessimistic_write'),
       });
       this.assertPending(order);
       await m.update(Order, orderId, {
@@ -511,7 +521,7 @@ export class OrdersService {
     return { ...(order as Order), items };
   }
 
-  async findAll(filter: ListOrdersDto, actor?: OperatorPublic): Promise<Order[]> {
+  async findAll(filter: ListOrdersDto, actor?: OperatorPublic): Promise<(Order & { userName?: string; userLegacyId?: string })[]> {
     const qb = this.orderRepo
       .createQueryBuilder('o')
       .orderBy('o.created_at', 'DESC')
@@ -519,13 +529,27 @@ export class OrdersService {
       .skip(filter.offset);
     if (actor) this.zoneAccess!.scopeByUserId(qb, actor, 'o.user_id');
 
-    // Inclusive date range on service_date (both bounds optional; caller defaults to today).
     if (filter.dateFrom) qb.andWhere('o.service_date >= :dateFrom', { dateFrom: filter.dateFrom });
     if (filter.dateTo) qb.andWhere('o.service_date <= :dateTo', { dateTo: filter.dateTo });
     if (filter.userId) qb.andWhere('o.user_id = :userId', { userId: filter.userId });
     if (filter.status) qb.andWhere('o.status = :status', { status: filter.status });
 
-    return qb.getMany();
+    const orders = await qb.getMany();
+    if (orders.length === 0) return [];
+
+    // Batch-fetch user names for display.
+    const userIds = [...new Set(orders.map((o) => o.userId))];
+    const users = await this.dataSource.query(
+      `SELECT id, name, legacy_id FROM users WHERE id IN (${userIds.map(() => '?').join(',')})`,
+      userIds,
+    ) as { id: string; name: string; legacy_id: string }[];
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    return orders.map((order) => ({
+      ...order,
+      userName: userMap.get(order.userId)?.name,
+      userLegacyId: userMap.get(order.userId)?.legacy_id,
+    }));
   }
 
   // Builds the delivery vouchers for a collection date: one merged sheet per prisoner over
@@ -623,7 +647,7 @@ export class OrdersService {
     );
   }
 
-  async findOne(id: string, actor?: OperatorPublic): Promise<OrderWithItems> {
+  async findOne(id: string, actor?: OperatorPublic): Promise<OrderWithItems & { userName?: string; userLegacyId?: string }> {
     const qb = this.orderRepo
       .createQueryBuilder('o')
       .where('o.id = :id', { id });
@@ -631,7 +655,180 @@ export class OrdersService {
     const order = await qb.getOne();
     if (!order) throw new NotFoundException({ message: 'Order not found', code: 'ORDER.NOT_FOUND' });
 
+    // Fetch user name.
+    const userRows = await this.dataSource.query(
+      'SELECT name, legacy_id FROM users WHERE id = ?',
+      [order.userId],
+    ) as { name: string; legacy_id: string }[];
+
+    // Fetch items with menu item names.
     const items = await this.itemRepo.find({ where: { orderId: id } });
-    return { ...order, items };
+    const menuIds = [...new Set(items.map((i) => i.menuItemId))];
+    let menuMap = new Map<string, string>();
+    if (menuIds.length > 0) {
+      const menuRows = await this.dataSource.query(
+        `SELECT id, name FROM menu_items WHERE id IN (${menuIds.map(() => '?').join(',')})`,
+        menuIds,
+      ) as { id: string; name: string }[];
+      menuMap = new Map(menuRows.map((m) => [m.id, m.name]));
+    }
+
+    return {
+      ...order,
+      items: items.map((item) => ({ ...item, menuItemName: menuMap.get(item.menuItemId) })),
+      userName: userRows[0]?.name,
+      userLegacyId: userRows[0]?.legacy_id,
+    };
   }
+
+  /**
+   * Aggregate dashboard stats for a service-date range.
+   * Returns order counts by payment status and total revenue from paid orders.
+   */
+  async getStats(filter: GetStatsDto): Promise<DashboardStats> {
+    const dateFrom = filter.dateFrom ?? todayInDeployTz();
+    const dateTo = filter.dateTo ?? dateFrom;
+
+    const qb = this.orderRepo
+      .createQueryBuilder('o')
+      .where('o.status = :status', { status: OrderStatus.ACTIVE })
+      .andWhere('o.service_date >= :dateFrom', { dateFrom })
+      .andWhere('o.service_date <= :dateTo', { dateTo });
+
+    const totalOrders = await qb.getCount();
+
+    const pendingOrders = await qb
+      .clone()
+      .andWhere('o.payment_status = :unpaid', { unpaid: PaymentStatus.UNPAID })
+      .getCount();
+
+    const paidOrders = await qb
+      .clone()
+      .andWhere('o.payment_status = :paid', { paid: PaymentStatus.PAID })
+      .getCount();
+
+    const revenueResult = await qb
+      .clone()
+      .andWhere('o.payment_status = :paid', { paid: PaymentStatus.PAID })
+      .select('COALESCE(SUM(o.total_amount), 0)', 'total')
+      .getRawOne<{ total: string }>();
+
+    const totalRevenue = Number(revenueResult?.total ?? 0);
+
+    return { totalOrders, pendingOrders, paidOrders, totalRevenue };
+  }
+
+  /**
+   * Financial report: revenue breakdown by source, payment method, and category
+   * across a date range. Admin-only.
+   */
+  async getFinancialReport(dateFrom: string, dateTo: string): Promise<FinancialReport> {
+    const base = this.orderRepo
+      .createQueryBuilder('o')
+      .where('o.status = :status', { status: OrderStatus.ACTIVE })
+      .andWhere('o.service_date >= :dateFrom', { dateFrom })
+      .andWhere('o.service_date <= :dateTo', { dateTo });
+
+    // Revenue by source
+    const bySource = await base.clone()
+      .andWhere('o.payment_status = :paid', { paid: PaymentStatus.PAID })
+      .select('o.source', 'source')
+      .addSelect('CAST(COUNT(*) AS INTEGER)', 'orderCount')
+      .addSelect('COALESCE(SUM(o.total_amount), 0)', 'revenue')
+      .groupBy('o.source')
+      .getRawMany<{ source: string; orderCount: string; revenue: string }>();
+
+    // Revenue by payment method
+    const byMethod = await base.clone()
+      .andWhere('o.payment_status = :paid', { paid: PaymentStatus.PAID })
+      .select('o.payment_method', 'method')
+      .addSelect('CAST(COUNT(*) AS INTEGER)', 'orderCount')
+      .addSelect('COALESCE(SUM(o.total_amount), 0)', 'revenue')
+      .groupBy('o.payment_method')
+      .getRawMany<{ method: string | null; orderCount: string; revenue: string }>();
+
+    // Revenue by category (join order_items)
+    const byCategory = await this.itemRepo
+      .createQueryBuilder('oi')
+      .innerJoin('orders', 'o', 'o.id = oi.order_id')
+      .where('o.status = :status', { status: OrderStatus.ACTIVE })
+      .andWhere('o.payment_status = :paid', { paid: PaymentStatus.PAID })
+      .andWhere('o.service_date >= :dateFrom', { dateFrom })
+      .andWhere('o.service_date <= :dateTo', { dateTo })
+      .select('oi.category', 'category')
+      .addSelect('CAST(SUM(oi.quantity) AS INTEGER)', 'totalQuantity')
+      .addSelect('COALESCE(SUM(oi.unit_price * oi.quantity), 0)', 'revenue')
+      .groupBy('oi.category')
+      .getRawMany<{ category: string; totalQuantity: string; revenue: string }>();
+
+    // Daily revenue totals
+    const daily = await base.clone()
+      .andWhere('o.payment_status = :paid', { paid: PaymentStatus.PAID })
+      .select('o.service_date', 'date')
+      .addSelect('CAST(COUNT(*) AS INTEGER)', 'orderCount')
+      .addSelect('COALESCE(SUM(o.total_amount), 0)', 'revenue')
+      .groupBy('o.service_date')
+      .orderBy('o.service_date', 'ASC')
+      .getRawMany<{ date: string; orderCount: string; revenue: string }>();
+
+    // Overall totals
+    const totalPaid = await base.clone()
+      .andWhere('o.payment_status = :paid', { paid: PaymentStatus.PAID })
+      .select('CAST(COUNT(*) AS INTEGER)', 'count')
+      .addSelect('COALESCE(SUM(o.total_amount), 0)', 'revenue')
+      .getRawOne<{ count: string; revenue: string }>();
+
+    const totalUnpaid = await base.clone()
+      .andWhere('o.payment_status = :unpaid', { unpaid: PaymentStatus.UNPAID })
+      .select('CAST(COUNT(*) AS INTEGER)', 'count')
+      .addSelect('COALESCE(SUM(o.total_amount), 0)', 'amount')
+      .getRawOne<{ count: string; amount: string }>();
+
+    return {
+      dateFrom,
+      dateTo,
+      totals: {
+        paidOrders: Number(totalPaid?.count ?? 0),
+        paidRevenue: Number(totalPaid?.revenue ?? 0),
+        unpaidOrders: Number(totalUnpaid?.count ?? 0),
+        unpaidAmount: Number(totalUnpaid?.amount ?? 0),
+      },
+      bySource: bySource.map((r) => ({
+        source: r.source,
+        orderCount: Number(r.orderCount),
+        revenue: Number(r.revenue),
+      })),
+      byMethod: byMethod.map((r) => ({
+        method: r.method ?? 'unknown',
+        orderCount: Number(r.orderCount),
+        revenue: Number(r.revenue),
+      })),
+      byCategory: byCategory.map((r) => ({
+        category: r.category,
+        totalQuantity: Number(r.totalQuantity),
+        revenue: Number(r.revenue),
+      })),
+      daily: daily.map((r) => ({
+        date: r.date,
+        orderCount: Number(r.orderCount),
+        revenue: Number(r.revenue),
+      })),
+    };
+  }
+}
+
+/** Financial report shape returned by getFinancialReport. */
+export interface FinancialReport {
+  dateFrom: string;
+  dateTo: string;
+  totals: {
+    paidOrders: number;
+    paidRevenue: number;
+    unpaidOrders: number;
+    unpaidAmount: number;
+  };
+  bySource: Array<{ source: string; orderCount: number; revenue: number }>;
+  byMethod: Array<{ method: string; orderCount: number; revenue: number }>;
+  byCategory: Array<{ category: string; totalQuantity: number; revenue: number }>;
+  daily: Array<{ date: string; orderCount: number; revenue: number }>;
 }

@@ -13,13 +13,15 @@ import viKitchen from './vi/kitchen';
 import viFormPrint from './vi/formPrint';
 import viErrors from './vi/errors';
 import viCounter from './vi/counter';
-import viKiosk from './vi/kiosk';
+import viCanteen from './vi/canteen';
 import viAccounts from './vi/accounts';
 import viPaymentConfig from './vi/paymentConfig';
 import viVouchers from './vi/vouchers';
 import viOrderForm from './vi/orderForm';
 import viScanUpload from './vi/scanUpload';
 import viOperators from './vi/operators';
+import viAuditLog from './vi/auditLog';
+import viFinancialReport from './vi/financialReport';
 
 import enCommon from './en/common';
 import enAuth from './en/auth';
@@ -33,13 +35,15 @@ import enKitchen from './en/kitchen';
 import enFormPrint from './en/formPrint';
 import enErrors from './en/errors';
 import enCounter from './en/counter';
-import enKiosk from './en/kiosk';
+import enCanteen from './en/canteen';
 import enAccounts from './en/accounts';
 import enPaymentConfig from './en/paymentConfig';
 import enVouchers from './en/vouchers';
 import enOrderForm from './en/orderForm';
 import enScanUpload from './en/scanUpload';
 import enOperators from './en/operators';
+import enAuditLog from './en/auditLog';
+import enFinancialReport from './en/financialReport';
 
 export const NAMESPACES = [
   'common',
@@ -54,13 +58,15 @@ export const NAMESPACES = [
   'formPrint',
   'errors',
   'counter',
-  'kiosk',
+  'canteen',
   'accounts',
   'paymentConfig',
   'vouchers',
   'orderForm',
   'scanUpload',
   'operators',
+  'auditLog',
+  'financialReport',
 ] as const;
 
 export const DEFAULT_NAMESPACE = 'common';
@@ -79,13 +85,15 @@ export const resources = {
     formPrint: viFormPrint,
     errors: viErrors,
     counter: viCounter,
-    kiosk: viKiosk,
+    canteen: viCanteen,
     accounts: viAccounts,
     paymentConfig: viPaymentConfig,
     vouchers: viVouchers,
     orderForm: viOrderForm,
     scanUpload: viScanUpload,
     operators: viOperators,
+    auditLog: viAuditLog,
+    financialReport: viFinancialReport,
   },
   en: {
     common: enCommon,
@@ -100,12 +108,14 @@ export const resources = {
     formPrint: enFormPrint,
     errors: enErrors,
     counter: enCounter,
-    kiosk: enKiosk,
+    canteen: enCanteen,
     accounts: enAccounts,
     paymentConfig: enPaymentConfig,
     vouchers: enVouchers,
     orderForm: enOrderForm,
     scanUpload: enScanUpload,
     operators: enOperators,
+    auditLog: enAuditLog,
+    financialReport: enFinancialReport,
   },
 } as const;

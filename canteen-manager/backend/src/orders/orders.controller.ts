@@ -6,9 +6,10 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { OrdersService, OrderWithItems, DeliveryVoucher } from './orders.service';
+import { OrdersService, OrderWithItems, DeliveryVoucher, DashboardStats, FinancialReport } from './orders.service';
 import { ListOrdersDto } from './dto/list-orders.dto';
 import { GetVouchersDto } from './dto/get-vouchers.dto';
+import { GetStatsDto } from './dto/get-stats.dto';
 import { Order } from './order.entity';
 import { Roles } from '../auth/roles.decorator';
 import { OperatorRole } from '../operators/operator.entity';
@@ -27,6 +28,22 @@ export class OrdersController {
   @Get()
   findAll(@Query() query: ListOrdersDto, @Req() req: AuthRequest): Promise<Order[]> {
     return this.ordersService.findAll(query, req.user);
+  }
+
+  /** Dashboard aggregate stats for a service-date range. Available to all authenticated operators. */
+  @Get('stats')
+  getStats(@Query() query: GetStatsDto): Promise<DashboardStats> {
+    return this.ordersService.getStats(query);
+  }
+
+  /** Admin-only financial report across a date range. */
+  @Get('financial-report')
+  @Roles(OperatorRole.ADMIN)
+  getFinancialReport(
+    @Query('dateFrom') dateFrom: string,
+    @Query('dateTo') dateTo: string,
+  ): Promise<FinancialReport> {
+    return this.ordersService.getFinancialReport(dateFrom, dateTo);
   }
 
   // ADMIN-only delivery vouchers. MUST stay declared before @Get(':id') — a literal route has

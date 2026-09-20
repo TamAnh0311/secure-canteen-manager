@@ -1,12 +1,19 @@
 import { ForbiddenException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { Repository } from 'typeorm';
+import { type AppEnv } from '../../config/env-validation';
 import { OperatorRole } from '../../operators/operator.entity';
 import { OperatorPublic } from '../../operators/operator-public';
 import { Tg8Document } from '../../orders/tg8-document.entity';
 import { ListTg8DocumentsDto } from '../dto/list-tg8-documents.dto';
 import { Tg8DocumentsService } from '../tg8-documents.service';
+
+/** Create a minimal ConfigService stub that returns the given DATABASE_TYPE. */
+function mockConfig(dbType: 'postgres' | 'sqlite' = 'postgres') {
+  return { get: () => dbType } as unknown as ConfigService<AppEnv, true>;
+}
 
 function actor(role: OperatorRole): OperatorPublic {
   return { id: 'operator-1', role } as OperatorPublic;
@@ -35,7 +42,7 @@ describe('Tg8DocumentsService.listRecentTg8', () => {
     const repository = {
       createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
     } as unknown as Repository<Tg8Document>;
-    const service = new Tg8DocumentsService(repository);
+    const service = new Tg8DocumentsService(repository, mockConfig('postgres'));
 
     await expect(
       service.listRecentTg8(actor(OperatorRole.CASHIER), '2026-07-17'),
@@ -61,7 +68,7 @@ describe('Tg8DocumentsService.listRecentTg8', () => {
     const repository = {
       createQueryBuilder: jest.fn(),
     } as unknown as Repository<Tg8Document>;
-    const service = new Tg8DocumentsService(repository);
+    const service = new Tg8DocumentsService(repository, mockConfig('postgres'));
 
     await expect(
       service.listRecentTg8(actor(OperatorRole.OPERATOR), '2026-07-17'),

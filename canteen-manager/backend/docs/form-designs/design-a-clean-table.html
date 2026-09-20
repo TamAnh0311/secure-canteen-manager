@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Design A — Clean Table</title>
+<style>
+  @page { size: A5 landscape; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f0f0f0; display: flex; justify-content: center; padding: 20px; }
+  .page {
+    width: 210mm; height: 148mm;
+    background: white; padding: 10mm 12mm 8mm;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  /* Registration marks */
+  .mark { position: absolute; width: 6px; height: 6px; background: black; }
+  .mark.tl { top: 6px; left: 6px; }
+  .mark.tr { top: 6px; right: 6px; }
+  .mark.bl { bottom: 6px; left: 6px; }
+  .mark.br { bottom: 6px; right: 6px; }
+  /* QR placeholder */
+  .qr { position: absolute; top: 10px; right: 14px; width: 48px; height: 48px; border: 1px solid #999; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999; }
+  /* Header */
+  .header { text-align: center; margin-bottom: 6mm; }
+  .header h1 { font-size: 14pt; letter-spacing: 1px; margin-bottom: 3mm; }
+  .fields { display: flex; gap: 6mm; font-size: 8pt; margin-top: 3mm; }
+  .field { flex: 1; }
+  .field label { font-weight: bold; }
+  .field .line { border-bottom: 1px solid #000; display: inline-block; min-width: 30mm; margin-left: 2mm; }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
+  thead th { background: #1a1a1a; color: white; padding: 2.5mm 2mm; text-align: left; font-weight: 600; font-size: 7pt; text-transform: uppercase; letter-spacing: 0.5px; }
+  thead th.right { text-align: right; }
+  thead th.center { text-align: center; }
+  tbody td { padding: 1.8mm 2mm; border-bottom: 1px solid #e8e8e8; }
+  tbody tr:nth-child(even) { background: #f7f7f7; }
+  .num { color: #888; font-size: 7pt; width: 8mm; }
+  .name { font-size: 7.5pt; }
+  .price { text-align: right; color: #555; font-size: 7pt; width: 18mm; }
+  .bubbles { width: 32mm; text-align: center; white-space: nowrap; }
+  .bubble { display: inline-block; width: 10px; height: 10px; border: 1.2px solid #333; border-radius: 50%; margin: 0 2px; }
+  .qty-header { width: 32mm; }
+  .qty-nums { display: flex; justify-content: center; gap: 4.5px; font-size: 7pt; font-weight: bold; }
+  /* Footer */
+  .footer { margin-top: 2mm; font-size: 6pt; color: #888; text-align: center; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="mark tl"></div><div class="mark tr"></div><div class="mark bl"></div><div class="mark br"></div>
+  <div class="qr">QR</div>
+
+  <div class="header">
+    <h1>PHIẾU ĐẶT HÀNG CANTEEN</h1>
+    <div class="fields">
+      <div class="field"><label>Họ tên:</label><span class="line">&nbsp;</span></div>
+      <div class="field"><label>Số tù:</label><span class="line">&nbsp;</span></div>
+      <div class="field"><label>Buồng/Phòng:</label><span class="line">&nbsp;</span></div>
+      <div class="field"><label>Ngày phục vụ:</label><span class="line">&nbsp;</span></div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Tên hàng</th>
+        <th class="right">Giá (VNĐ)</th>
+        <th class="center qty-header"><div class="qty-nums"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div></th>
+      </tr>
+    </thead>
+    <tbody id="items"></tbody>
+  </table>
+  <div class="footer">Đánh dấu số lượng (1–5) cho từng món cần mua. Một ô tròn = một phần.</div>
+</div>
+
+<script>
+const items = [
+  ['Mì tôm Hảo Hảo', 15000], ['Xà phòng Lifebuoy', 18000], ['Nước suối 500ml', 8000],
+  ['Kem đánh răng P/S', 26000], ['Sữa hộp Vinamilk', 12000], ['Bàn chải đánh răng', 14000],
+  ['Bánh quy', 20000], ['Dầu gội gói', 5000], ['Lạc rang', 10000], ['Khăn mặt', 25000],
+  ['Bánh mì ngọt', 12000], ['Giấy vệ sinh', 16000], ['Sữa đậu nành', 10000],
+  ['Bột giặt gói', 15000], ['Kẹo lạc', 10000], ['Nước rửa tay', 22000],
+  ['Bánh gạo', 18000], ['Lược nhựa', 10000], ['Cà phê hòa tan', 9000], ['Bấm móng tay', 18000],
+  ['Trà túi lọc', 15000], ['Dép nhựa', 55000], ['Đường gói', 12000], ['Áo lót cotton', 45000],
+  ['Muối lạc', 12000], ['Quần lót cotton', 45000], ['Chà bông', 30000], ['Khẩu trang vải', 12000],
+];
+const tb = document.getElementById('items');
+items.forEach(([name, price], i) => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td class="num">${String(i+1).padStart(2,'0')}</td><td class="name">${name}</td><td class="price">${price.toLocaleString('vi-VN')}</td><td class="bubbles"><span class="bubble"></span><span class="bubble"></span><span class="bubble"></span><span class="bubble"></span><span class="bubble"></span></td>`;
+  tb.appendChild(tr);
+});
+</script>
+</body>
+</html>

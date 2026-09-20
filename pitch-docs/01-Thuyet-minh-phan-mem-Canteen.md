@@ -90,7 +90,7 @@ Hiện nay, quá trình quản lý hoạt động căng-tin tại các Trại t�
 
 3.2. Yêu cầu phần cứng, hạ tầng mạng, đảm bảo an toàn thông tin, bảo mật
 
-- Thiết bị phần cứng: Sử dụng hệ thống thiết bị đạt tiêu chuẩn chất lượng, ổn định, được cung cấp chuyên nghiệp. Hỗ trợ triển khai trên 02 mô hình: (a) Máy chủ riêng với Docker Compose cho cơ sở lớn; (b) Phần mềm cài đặt trên máy tính cá nhân (Electron) cho cơ sở nhỏ/điểm xa.
+- Thiết bị phần cứng: Sử dụng hệ thống thiết bị đạt tiêu chuẩn chất lượng, ổn định, được cung cấp chuyên nghiệp. Hỗ trợ triển khai trên 02 mô hình: (a) Máy chủ riêng với Docker Compose cho cơ sở lớn; (b) Phần mềm cài đặt trên máy tính cá nhân (Electron) cho cơ sở nhỏ/điểm xa. Chức năng quét phiếu sử dụng điện thoại thông minh hoặc máy tính bảng có camera (không cần thiết bị quét chuyên dụng).
 - Hạ tầng mạng: Sử dụng hạ tầng mạng nội bộ (LAN) của Trại tạm giam; Không yêu cầu kết nối Internet (air-gapped deployment).
 - Lưu trữ: Hệ thống hỗ trợ cơ sở dữ liệu PostgreSQL 16 (cho mô hình máy chủ) và SQLite 3 (cho mô hình cài đặt cá nhân), đảm bảo khả năng truy xuất dữ liệu nhanh và ổn định.
 - Hệ thống sao lưu (Backup): Đảm bảo việc sao lưu tự động định kỳ; sao lưu ra thiết bị ngoại vi; hỗ trợ khôi phục dữ liệu khi có sự cố.
@@ -120,15 +120,15 @@ Frontend (Giao diện người dùng):
 - Build: Electron Builder 26
 - Cấu hình: electron-store
 
-Dịch vụ quét phiếu đặt hàng (Scanner):
-- Runtime: Python 3.11+
-- OCR Engine: PaddleOCR 3.7 (PP-OCRv6, hỗ trợ Tiếng Việt, chạy CPU)
-- Image Processing: OpenCV, NumPy, Pillow
-- Database: SQLite 3 (hàng đợi công việc)
-- File Intake: Samba SMB share (polling thư mục chia sẻ)
+Dịch vụ quét phiếu đặt hàng (Phone Scanner):
+- Tích hợp trong Backend (Node.js)
+- QR Reader: jsQR 1.4
+- Image Processing: sharp 0.35
+- OMR Detection: Thuật toán nhận dạng vùng đánh dấu nội bộ
+- Thiết bị: Điện thoại thông minh hoặc máy tính bảng có camera
 
 Hạ tầng triển khai:
-- Container: Docker Compose (PostgreSQL + Backend + Frontend/Nginx + Scanner)
+- Container: Docker Compose (PostgreSQL + Backend + Frontend/Nginx)
 - OS: Ubuntu/CentOS (máy chủ), Windows 10/11 (Electron)
 - Bảo mật: Tường lửa + SSL/TLS (mạng nội bộ)
 
@@ -188,21 +188,26 @@ Hiển thị danh sách mặt hàng đang bán với giá và phân loại; Giao
 (15) Đặt hàng qua kiosk:
 Nhập mã lưu ký để xác định can phạm nhân; Chọn mặt hàng và số lượng; Tạo đơn hàng chờ duyệt (PENDING).
 
-D. PHÂN HỆ QUÉT PHIẾU ĐẶT HÀNG (Scanner Service)
+D. PHÂN HỆ QUÉT PHIẾU ĐẶT HÀNG (Phone Scanner)
 
-(16) Quét và nhận dạng phiếu đặt hàng:
-Tự động quét phiếu từ thư mục chia sẻ mạng (Samba SMB); Nhận dạng quang học (OCR) chữ viết tay tiếng Việt bằng PaddleOCR; Nhận dạng mã lưu ký, buồng giam, mặt hàng và số lượng; Tự động đối chiếu với danh mục hàng hóa.
+(16) Quét phiếu qua điện thoại:
+Sử dụng camera điện thoại để chụp phiếu OMR; Nhận dạng mã QR và vùng đánh dấu tự động; Tạo đơn hàng trực tiếp nếu độ tin cậy cao.
 
-(17) Xác minh và phê duyệt phiếu quét:
-Phiếu có độ tin cậy cao: tự động tạo đơn hàng; Phiếu cần kiểm tra: chuyển sang giao diện xác minh thủ công; Cán bộ xác nhận danh tính, mặt hàng và phê duyệt/từ chối; Phát hiện phiếu trùng lặp qua mã băm SHA-256.
-
-(18) Giám sát hàng đợi quét:
-Bảng điều khiển theo dõi trạng thái quét realtime; Hiển thị số lượng phiếu: đang chờ, đang xử lý, đã duyệt, cần kiểm tra, bị từ chối.
+(17) Giám sát quét:
+Bảng điều khiển theo dõi hoạt động quét qua điện thoại; Hiển thị KPI: tổng lượt quét, đơn hàng tạo, đơn đã thanh toán, doanh thu.
 
 E. PHÂN HỆ TÍCH HỢP DỮ LIỆU CŨ (Legacy Sync - tùy chọn)
 
 (19) Đồng bộ dữ liệu can phạm nhân:
 Kết nối đọc dữ liệu từ hệ thống CSDL SQL Server 2005 hiện có (Phần mềm C11); Đồng bộ thông tin can phạm nhân: họ tên, mã lưu ký, buồng giam, khu giam; Chỉ đọc (read-only), không ảnh hưởng dữ liệu hệ thống cũ.
+
+F. PHÂN HỆ KIỂM TOÁN & BÁO CÁO
+
+(20) Nhật ký hoạt động (Audit Log):
+Ghi nhận mọi thao tác của cán bộ trên hệ thống; Hiển thị theo thời gian: ai, làm gì, khi nào; Hỗ trợ thanh tra, kiểm toán.
+
+(21) Báo cáo tài chính:
+Tổng hợp doanh thu theo khoảng thời gian; Phân tích theo nguồn đặt hàng, phương thức thanh toán; Xuất báo cáo phục vụ công tác quản lý.
 
 6. Đánh giá hiệu quả triển khai
 

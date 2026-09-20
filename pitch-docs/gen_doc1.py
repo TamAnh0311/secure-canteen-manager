@@ -266,9 +266,8 @@ def main():
         ('Giao diện - Thư viện UI', 'Radix UI + TailwindCSS', '3.4'),
         ('Đa ngôn ngữ', 'i18next', 'VI + EN'),
         ('Ứng dụng máy tính', 'Electron', '36'),
-        ('Dịch vụ quét phiếu - Nền tảng', 'Python', '3.11+'),
-        ('Dịch vụ quét phiếu - OCR', 'PaddleOCR (PP-OCRv6)', '3.7'),
-        ('Dịch vụ quét phiếu - Xử lý ảnh', 'OpenCV + NumPy + Pillow', '-'),
+        ('Quét phiếu - QR', 'jsQR', '1.4'),
+        ('Quét phiếu - Xử lý ảnh', 'sharp', '0.35'),
         ('Triển khai', 'Docker Compose', '-'),
     ]
     for comp, tech, ver in tech_rows:
@@ -305,13 +304,16 @@ def main():
             ('(14) Duyệt danh mục hàng hóa:', 'Hiển thị mặt hàng đang bán; Giao diện đơn giản.'),
             ('(15) Đặt hàng qua màn hình tự phục vụ:', 'Nhập mã lưu ký; Chọn mặt hàng; Tạo đơn chờ duyệt.'),
         ]),
-        ('D. PHÂN HỆ QUÉT PHIẾU ĐẶT HÀNG', [
-            ('(16) Quét và nhận dạng phiếu:', 'Quét tự động từ thư mục chia sẻ mạng; Nhận dạng chữ viết tay tiếng Việt (PaddleOCR); Nhận dạng mã lưu ký, mặt hàng, số lượng.'),
-            ('(17) Xác minh và phê duyệt:', 'Tự động tạo đơn nếu độ tin cậy cao; Xác minh thủ công nếu cần; Phát hiện phiếu trùng lặp (SHA-256).'),
-            ('(18) Giám sát hàng đợi quét:', 'Bảng điều khiển thời gian thực; Trạng thái: Đang chờ / Đang xử lý / Cần xác minh / Đã phê duyệt / Đã từ chối.'),
+        ('D. PHÂN HỆ QUÉT PHIẾU ĐẶT HÀNG (Điện thoại)', [
+            ('(16) Quét phiếu qua điện thoại:', 'Sử dụng camera điện thoại để chụp phiếu OMR; Nhận dạng mã QR và vùng đánh dấu tự động; Đối chiếu với danh mục hàng hóa; Tạo đơn hàng trực tiếp nếu độ tin cậy cao.'),
+            ('(17) Giám sát quét:', 'Bảng điều khiển theo dõi hoạt động quét qua điện thoại; Hiển thị KPI: tổng lượt quét, đơn hàng tạo, đơn đã thanh toán, doanh thu.'),
         ]),
         ('E. PHÂN HỆ TÍCH HỢP DỮ LIỆU CŨ (tùy chọn)', [
             ('(19) Đồng bộ dữ liệu can phạm nhân:', 'Kết nối SQL Server 2005 (phần mềm C11); Đồng bộ thông tin; Chỉ đọc, không ảnh hưởng dữ liệu cũ.'),
+        ]),
+        ('F. PHÂN HỆ KIỂM TOÁN & BÁO CÁO', [
+            ('(20) Nhật ký hoạt động:', 'Ghi nhận mọi thao tác của cán bộ trên hệ thống; Hiển thị theo thời gian: ai, làm gì, khi nào; Hỗ trợ thanh tra, kiểm toán.'),
+            ('(21) Báo cáo tài chính:', 'Tổng hợp doanh thu theo khoảng thời gian; Phân tích theo nguồn đặt hàng, phương thức thanh toán; Xuất báo cáo phục vụ công tác quản lý.'),
         ]),
     ]
 

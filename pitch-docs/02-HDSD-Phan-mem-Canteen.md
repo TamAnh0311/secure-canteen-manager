@@ -39,19 +39,17 @@ III. Bảng điều khiển tổng quan (Dashboard) ............................
    3.3. Sửa mặt hàng ....................................................... 13
    3.4. Vô hiệu hóa mặt hàng .............................................. 14
 4. Quản lý tài khoản lưu ký (Accounts) .................................... 14
-5. Xác minh phiếu quét (Verify) ........................................... 15
-   5.1. Danh sách phiếu cần xác minh ...................................... 15
-   5.2. Xác minh danh tính ................................................. 16
-   5.3. Xác nhận mặt hàng ................................................. 16
-6. Giám sát quét phiếu (Scan Monitor) ..................................... 17
-7. Tải phiếu quét lên (Scan Upload) ....................................... 17
+5. Quét phiếu qua điện thoại (Phone Scan) .................................. 15
+6. Giám sát quét (Scan Monitor) ........................................... 17
+7. Nhật ký hoạt động (Audit Log) .......................................... 17
 8. Quản lý biểu mẫu OMR (Form Print) ..................................... 18
 9. Nhập đơn hàng thủ công (Order Form) .................................... 19
 10. Quản lý cán bộ (Operators) ............................................ 20
 11. Cấu hình thanh toán (Payment Config) .................................. 21
 12. Cấu hình hạn mức mua hàng (Purchase Limit Config) .................... 22
-13. Kiosk – Đặt hàng tự phục vụ .......................................... 22
-IV. Ứng dụng Desktop (Electron) ............................................ 23
+13. Đặt hàng tự phục vụ (Canteen) ......................................... 22
+14. Báo cáo tài chính (Financial Report) ................................... 23
+IV. Ứng dụng Desktop (Electron) ............................................ 24
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -111,16 +109,16 @@ Vai trò ADMIN (Quản trị viên):
 - Counter (Quầy thu ngân)
 - Menu Config (Quản lý danh mục)
 - Accounts (Tài khoản lưu ký)
-- Verify (Xác minh phiếu quét)
 - Scan Monitor (Giám sát quét)
-- Scan Upload (Tải phiếu quét)
 - Form Print (In biểu mẫu OMR)
 - Order Form (Nhập đơn thủ công)
 - Operators (Quản lý cán bộ)
 - Payment Config (Cấu hình thanh toán)
+- Audit Log (Nhật ký hoạt động)
+- Financial (Báo cáo tài chính)
 
 Vai trò OPERATOR (Cán bộ nghiệp vụ):
-- Dashboard, Orders, Kitchen Summary, Verify, Scan Monitor, Scan Upload, Order Form
+- Dashboard, Orders, Kitchen Summary, Scan Monitor, Order Form
 
 Vai trò CASHIER (Thu ngân):
 - Dashboard, Counter
@@ -373,80 +371,78 @@ Bước 3: Hệ thống hiển thị thông tin tài khoản:
 Lưu ý: Sổ cái hoạt động theo mô hình chỉ thêm (insert-only). Không có giao dịch nào bị sửa hoặc xóa. Số dư tài khoản luôn bằng tổng các giao dịch.
 
 
-5. Xác minh phiếu quét (Verify)
+5. Quét phiếu qua điện thoại (Phone Scan)
 
-Chức năng này dành cho cán bộ xác minh các phiếu đặt hàng đã quét mà hệ thống đánh dấu cần kiểm tra (FLAGGED).
+Chức năng này cho phép quét phiếu đặt hàng OMR bằng camera điện thoại, không cần máy quét chuyên dụng.
 
-5.1. Danh sách phiếu cần xác minh
+Bước 1: Truy cập địa chỉ quét phiếu (ví dụ: http://192.168.1.100:3000/scan) trên điện thoại.
 
-Bước 1: Tại thanh menu, anh/chị chọn "Verify" (Xác minh).
+Bước 2: Hệ thống mở camera thiết bị. Đặt phiếu OMR vào khung hình.
 
-Bước 2: Hệ thống hiển thị danh sách phiếu quét có trạng thái FLAGGED, bao gồm:
-- Ảnh phiếu gốc
-- Kết quả nhận dạng tự động (mã lưu ký, buồng giam, mặt hàng, số lượng)
-- Độ tin cậy nhận dạng
-- Nguồn nạp (trình duyệt/máy quét/agent)
+Bước 3: Click "Chụp" (Capture) để chụp ảnh phiếu.
 
-5.2. Xác minh danh tính
+Bước 4: Xem lại ảnh chụp. Nếu chưa rõ, click "Chụp lại" (Retake). Nếu rõ, click "Gửi" (Submit).
 
-Bước 1: Anh/Chị chọn phiếu cần xác minh. Hệ thống hiển thị:
-- Ảnh phiếu gốc (bên trái)
-- Danh sách ứng viên được xếp hạng theo độ tin cậy (bên phải)
+Bước 5: Hệ thống xử lý ảnh:
+- Đọc mã QR trên phiếu để xác định phiên bản biểu mẫu
+- Nhận dạng vùng đánh dấu (registration marks)
+- Đọc các ô đánh dấu số lượng (OMR bubbles)
+- Đối chiếu với danh mục hàng hóa
 
-Bước 2: Anh/Chị chọn một trong các cách:
-a) Chọn ứng viên từ danh sách đề xuất: Click vào ứng viên phù hợp.
-b) Tìm kiếm thủ công: Nhập mã lưu ký hoặc họ tên để tìm đúng can phạm nhân.
+Bước 6: Hệ thống hiển thị kết quả:
+- "Đã tạo đơn" (Order Created): Đơn hàng được tạo tự động (độ tin cậy cao)
+- "Cần xem xét" (Review Required): Cần kiểm tra lại (có cảnh báo hoặc độ tin cậy thấp)
+- "Không tìm thấy" (No Items): Không nhận dạng được mặt hàng nào
 
-Bước 3: Click "Xác nhận danh tính" để ghi nhận.
+Bước 7: Click "Quét tiếp" (Scan Another) để quét phiếu tiếp theo.
 
-5.3. Xác nhận mặt hàng
-
-Sau khi xác minh danh tính:
-
-Bước 1: Hệ thống hiển thị danh sách mặt hàng nhận dạng được từ phiếu:
-- Tên mặt hàng (kết quả nhận dạng)
-- Mặt hàng đối chiếu trong danh mục
-- Số lượng nhận dạng
-- Độ tin cậy
-
-Bước 2: Anh/Chị kiểm tra, chỉnh sửa nếu cần (sửa mặt hàng, số lượng).
-
-Bước 3: Chọn thao tác:
-a) "Phê duyệt" (Approve): Tạo đơn hàng từ kết quả xác minh, trạng thái chuyển sang APPROVED.
-b) "Từ chối" (Reject): Hủy phiếu, trạng thái chuyển sang REJECTED.
-
-Lưu ý: Hệ thống phát hiện phiếu trùng lặp qua mã băm SHA-256 của ảnh. Nếu phiếu đã được xử lý trước đó, hệ thống sẽ cảnh báo.
+Lưu ý:
+- Không cần đăng nhập để sử dụng trang quét (phù hợp triển khai trên điện thoại dùng chung).
+- Đảm bảo ánh sáng đủ và phiếu không bị nhăn để tăng độ chính xác.
+- Kết quả quét được theo dõi tại "Giám sát quét" (Scan Monitor).
 
 
-6. Giám sát quét phiếu (Scan Monitor)
+6. Giám sát quét (Scan Monitor)
 
-Bước 1: Tại thanh menu, anh/chị chọn "Scan Monitor" (Giám sát quét).
+Bước 1: Tại thanh menu, anh/chị chọn "Giám sát quét" (Scan Monitor).
 
-Bước 2: Hệ thống hiển thị bảng điều khiển realtime:
-- Số phiếu đang chờ (PENDING)
-- Số phiếu đang xử lý (PROCESSING)
-- Số phiếu đã duyệt (APPROVED)
-- Số phiếu cần kiểm tra (FLAGGED)
-- Số phiếu bị từ chối (REJECTED)
-- Danh sách phiếu gần đây với trạng thái và thời gian cập nhật
+Bước 2: Hệ thống hiển thị bảng điều khiển với các thông tin:
+- Tổng lượt quét: Số lượt quét phiếu qua điện thoại
+- Đơn hàng tạo: Số đơn hàng được tạo từ quét phiếu
+- Đơn đã thanh toán: Số đơn hàng đã được thanh toán
+- Tổng doanh thu: Tổng giá trị các đơn hàng từ quét phiếu
+
+Bước 3: Bảng lịch sử quét hiển thị danh sách đơn hàng từ quét phiếu, bao gồm:
+- Mã đơn hàng
+- Ngày phục vụ
+- Số tiền
+- Trạng thái đơn hàng
+- Trạng thái thanh toán
+- Thời gian
+
+Bước 4: Click "Mở quét điện thoại" để mở trang quét phiếu trong tab mới.
+
+Bước 5: Sử dụng bộ lọc ngày để xem lịch sử quét theo khoảng thời gian. Dữ liệu tự động làm mới mỗi 5 giây.
+
+Lưu ý: Có thể tạm dừng/tiếp tục tự động làm mới bằng nút "Tạm dừng" / "Tiếp tục".
 
 
-7. Tải phiếu quét lên (Scan Upload)
+7. Nhật ký hoạt động (Audit Log)
 
-Chức năng này cho phép tải ảnh phiếu đặt hàng lên hệ thống để xử lý nhận dạng.
+Chức năng này ghi nhận mọi thao tác của cán bộ trên hệ thống, phục vụ công tác giám sát và kiểm toán.
 
-Bước 1: Tại thanh menu, anh/chị chọn "Scan Upload" (Tải phiếu quét).
+Bước 1: Tại thanh menu, anh/chị chọn "Nhật ký hoạt động" (Audit Log).
 
-Bước 2: Click "Chọn file" hoặc kéo thả file ảnh vào vùng tải lên.
-- Định dạng hỗ trợ: JPG, PNG, PDF
-- Có thể tải nhiều file cùng lúc
+Bước 2: Hệ thống hiển thị danh sách các hoạt động gần đây:
+- Thời gian thực hiện
+- Cán bộ thực hiện
+- Loại thao tác (tạo, sửa, xóa, duyệt, từ chối...)
+- Đối tượng thao tác (đơn hàng, tài khoản, cấu hình...)
+- Chi tiết thay đổi
 
-Bước 3: Click "Tải lên" (Upload). Hệ thống:
-- Kiểm tra trùng lặp (checksum SHA-256)
-- Tạo phiếu quét mới với trạng thái PENDING
-- Chuyển vào hàng đợi xử lý nhận dạng
+Bước 3: Sử dụng bộ lọc để tìm kiếm theo thời gian, cán bộ, loại thao tác.
 
-Bước 4: Theo dõi tiến trình tại "Scan Monitor".
+Lưu ý: Nhật ký hoạt động không thể sửa hoặc xóa (ghi nhận bất biến). Chỉ Quản trị viên có quyền xem.
 
 
 8. Quản lý biểu mẫu OMR (Form Print)
@@ -568,9 +564,9 @@ Bước 3: Click "Lưu". Hệ thống sẽ kiểm tra hạn mức khi duyệt đ
 Lưu ý: Hạn mức được tính theo tháng dương lịch, tự động reset đầu tháng mới.
 
 
-13. Kiosk – Đặt hàng tự phục vụ
+13. Đặt hàng tự phục vụ (Canteen)
 
-Giao diện Kiosk dành cho can phạm nhân tự đặt hàng, không yêu cầu đăng nhập.
+Giao diện tự phục vụ dành cho can phạm nhân tự đặt hàng, không yêu cầu đăng nhập.
 
 Bước 1: Truy cập địa chỉ kiosk (ví dụ: http://192.168.1.100:3000/canteen).
 
@@ -585,7 +581,24 @@ Bước 4: Chọn mặt hàng và số lượng.
 
 Bước 5: Xác nhận đơn hàng. Hệ thống tạo đơn hàng PENDING, chờ duyệt tại quầy thu ngân.
 
-Lưu ý: Giao diện kiosk không yêu cầu đăng nhập, phù hợp triển khai trên máy tính bảng hoặc màn hình cảm ứng tại khu giam.
+Lưu ý: Giao diện tự phục vụ không yêu cầu đăng nhập, phù hợp triển khai trên máy tính bảng hoặc màn hình cảm ứng tại khu giam.
+
+
+14. Báo cáo tài chính (Financial Report)
+
+Chức năng này tổng hợp doanh thu và phân tích tài chính theo khoảng thời gian.
+
+Bước 1: Tại thanh menu, anh/chị chọn "Báo cáo tài chính" (Financial Report).
+
+Bước 2: Chọn khoảng thời gian cần báo cáo (ngày bắt đầu – ngày kết thúc).
+
+Bước 3: Hệ thống hiển thị báo cáo tổng hợp:
+- Tổng doanh thu trong khoảng thời gian
+- Phân tích theo nguồn đặt hàng (quét phiếu, thân nhân, thủ công)
+- Phân tích theo phương thức thanh toán (số dư, tiền mặt, chuyển khoản)
+- Số lượng đơn hàng theo trạng thái
+
+Lưu ý: Chỉ Quản trị viên có quyền xem báo cáo tài chính.
 
 
 IV. Ứng dụng Desktop (Electron)
@@ -641,26 +654,26 @@ PHỤ LỤC
 
 A. Bảng vai trò và quyền hạn
 
-┌────────────────────────────┬───────┬──────────┬─────────┐
-│ Chức năng                  │ ADMIN │ OPERATOR │ CASHIER │
-├────────────────────────────┼───────┼──────────┼─────────┤
-│ Dashboard                  │  ✓    │    ✓     │   ✓     │
-│ Orders (Đơn hàng)         │  ✓    │    ✓     │         │
-│ Delivery Vouchers          │  ✓    │          │         │
-│ Kitchen Summary            │  ✓    │    ✓     │         │
-│ Counter (Thu ngân)         │  ✓    │          │   ✓     │
-│ Menu Config                │  ✓    │          │         │
-│ Accounts (Tài khoản)      │  ✓    │          │         │
-│ Verify (Xác minh)         │  ✓    │    ✓     │         │
-│ Scan Monitor               │  ✓    │    ✓     │         │
-│ Scan Upload                │  ✓    │    ✓     │         │
-│ Form Print (OMR)           │  ✓    │          │         │
-│ Order Form (Nhập thủ công) │  ✓    │    ✓     │         │
-│ Operators (Quản lý CB)    │  ✓    │          │         │
-│ Payment Config             │  ✓    │          │         │
-│ Purchase Limit Config      │  ✓    │          │         │
-│ Kiosk (Không cần đăng nhập)│  -    │    -     │   -     │
-└────────────────────────────┴───────┴──────────┴─────────┘
+┌─────────────────────────────────┬───────┬──────────┬─────────┐
+│ Chức năng                       │ ADMIN │ OPERATOR │ CASHIER │
+├─────────────────────────────────┼───────┼──────────┼─────────┤
+│ Dashboard                       │  ✓    │    ✓     │   ✓     │
+│ Orders (Đơn hàng)              │  ✓    │    ✓     │         │
+│ Delivery Vouchers               │  ✓    │          │         │
+│ Kitchen Summary                 │  ✓    │    ✓     │         │
+│ Counter (Thu ngân)              │  ✓    │          │   ✓     │
+│ Menu Config                     │  ✓    │          │         │
+│ Accounts (Tài khoản)           │  ✓    │          │         │
+│ Scan Monitor (Giám sát quét)   │  ✓    │    ✓     │         │
+│ Form Print (OMR)                │  ✓    │          │         │
+│ Order Form (Nhập thủ công)     │  ✓    │    ✓     │         │
+│ Operators (Quản lý CB)         │  ✓    │          │         │
+│ Payment Config                  │  ✓    │          │         │
+│ Purchase Limit Config           │  ✓    │          │         │
+│ Audit Log (Nhật ký hoạt động)  │  ✓    │          │         │
+│ Financial (Báo cáo tài chính)  │  ✓    │          │         │
+│ Canteen (Không cần đăng nhập)  │  -    │    -     │   -     │
+└─────────────────────────────────┴───────┴──────────┴─────────┘
 
 B. Bảng trạng thái đơn hàng
 
@@ -686,14 +699,12 @@ C. Bảng loại giao dịch tài khoản lưu ký
 │ REFUND          │ Hoàn tiền thủ công bởi cán bộ          │
 └─────────────────┴────────────────────────────────────────┘
 
-D. Bảng trạng thái phiếu quét
+D. Bảng trạng thái kết quả quét phiếu
 
-┌────────────┬─────────────────────────────────────────────┐
-│ Trạng thái │ Mô tả                                      │
-├────────────┼─────────────────────────────────────────────┤
-│ PENDING    │ Đang chờ xử lý                              │
-│ PROCESSING │ Đang nhận dạng (OCR)                        │
-│ FLAGGED    │ Cần xác minh thủ công (độ tin cậy thấp)     │
-│ APPROVED   │ Đã phê duyệt, đơn hàng được tạo            │
-│ REJECTED   │ Đã từ chối                                  │
-└────────────┴─────────────────────────────────────────────┘
+┌─────────────────┬──────────────────────────────────────────┐
+│ Trạng thái      │ Mô tả                                   │
+├─────────────────┼──────────────────────────────────────────┤
+│ Đã tạo đơn      │ Đơn hàng được tạo tự động (tin cậy cao) │
+│ Cần xem xét     │ Cần kiểm tra lại (có cảnh báo)          │
+│ Không tìm thấy  │ Không nhận dạng được mặt hàng           │
+└─────────────────┴──────────────────────────────────────────┘

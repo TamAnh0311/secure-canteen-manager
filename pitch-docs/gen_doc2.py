@@ -186,15 +186,16 @@ def main():
         '   2.4. \u0110\u1eb7t h\u00e0ng t\u1eeb th\u00e2n nh\u00e2n',
         '3. Qu\u1ea3n l\u00fd danh m\u1ee5c h\u00e0ng h\u00f3a',
         '4. Qu\u1ea3n l\u00fd t\u00e0i kho\u1ea3n l\u01b0u k\u00fd',
-        '5. X\u00e1c minh phi\u1ebfu qu\u00e9t',
-        '6. Gi\u00e1m s\u00e1t qu\u00e9t phi\u1ebfu',
-        '7. T\u1ea3i phi\u1ebfu qu\u00e9t l\u00ean',
+        '5. Qu\u00e9t phi\u1ebfu qua \u0111i\u1ec7n tho\u1ea1i',
+        '6. Gi\u00e1m s\u00e1t qu\u00e9t',
+        '7. Nh\u1eadt k\u00fd ho\u1ea1t \u0111\u1ed9ng',
         '8. Qu\u1ea3n l\u00fd bi\u1ec3u m\u1eabu OMR',
         '9. Nh\u1eadp \u0111\u01a1n h\u00e0ng th\u1ee7 c\u00f4ng',
         '10. Qu\u1ea3n l\u00fd c\u00e1n b\u1ed9',
         '11. C\u1ea5u h\u00ecnh thanh to\u00e1n',
         '12. C\u1ea5u h\u00ecnh h\u1ea1n m\u1ee9c mua h\u00e0ng',
         '13. \u0110\u1eb7t h\u00e0ng t\u1ef1 ph\u1ee5c v\u1ee5',
+        '14. B\u00e1o c\u00e1o t\u00e0i ch\u00ednh',
         'IV. \u1ee8ng d\u1ee5ng m\u00e1y t\u00ednh (Electron)',
         'PH\u1ee4 L\u1ee4C',
     ]
@@ -289,9 +290,9 @@ def main():
         ('Qu\u1ea7y thu ng\u00e2n', '\u2713', '', '\u2713'),
         ('Qu\u1ea3n l\u00fd th\u1ef1c \u0111\u01a1n', '\u2713', '', ''),
         ('T\u00e0i kho\u1ea3n l\u01b0u k\u00fd', '\u2713', '', ''),
-        ('X\u00e1c minh phi\u1ebfu qu\u00e9t', '\u2713', '\u2713', ''),
-        ('Gi\u00e1m s\u00e1t qu\u00e9t phi\u1ebfu', '\u2713', '\u2713', ''),
-        ('T\u1ea3i phi\u1ebfu qu\u00e9t', '\u2713', '\u2713', ''),
+        ('Gi\u00e1m s\u00e1t qu\u00e9t', '\u2713', '\u2713', '\u2713'),
+        ('Nh\u1eadt k\u00fd ho\u1ea1t \u0111\u1ed9ng', '\u2713', '', ''),
+        ('B\u00e1o c\u00e1o t\u00e0i ch\u00ednh', '\u2713', '', ''),
         ('In bi\u1ec3u m\u1eabu OMR', '\u2713', '', ''),
         ('Nh\u1eadp \u0111\u01a1n th\u1ee7 c\u00f4ng', '\u2713', '\u2713', ''),
         ('Qu\u1ea3n l\u00fd c\u00e1n b\u1ed9', '\u2713', '', ''),
@@ -429,29 +430,34 @@ def main():
         'S\u1ed5 c\u00e1i ho\u1ea1t \u0111\u1ed9ng theo m\u00f4 h\u00ecnh ch\u1ec9 th\u00eam (ch\u1ec9 ghi th\u00eam). '
         'Kh\u00f4ng giao d\u1ecbch n\u00e0o b\u1ecb s\u1eeda/x\u00f3a.')
 
-    # ===== 5. VERIFY =====
-    add_h2(doc, '5. X\u00e1c minh phi\u1ebfu qu\u00e9t ')
-    add_step(doc, 'B\u01b0\u1edbc 1: Ch\u1ecdn "X\u00e1c minh". H\u1ec7 th\u1ed1ng hi\u1ec3n th\u1ecb danh s\u00e1ch phi\u1ebfu tr\u1ea1ng th\u00e1i C\u1ea7n x\u00e1c minh.')
-    add_step(doc,
-        'B\u01b0\u1edbc 2 \u2013 X\u00e1c minh danh t\u00ednh: Xem \u1ea3nh phi\u1ebfu g\u1ed1c, ch\u1ecdn \u1ee9ng vi\u00ean t\u1eeb '
-        'danh s\u00e1ch \u0111\u1ec1 xu\u1ea5t ho\u1eb7c t\u00ecm ki\u1ebfm th\u1ee7 c\u00f4ng. Click "X\u00e1c nh\u1eadn danh t\u00ednh".')
-    add_step(doc,
-        'B\u01b0\u1edbc 3 \u2013 X\u00e1c nh\u1eadn m\u1eb7t h\u00e0ng: Ki\u1ec3m tra, ch\u1ec9nh s\u1eeda n\u1ebfu c\u1ea7n. '
-        'Ch\u1ecdn "Ph\u00ea duy\u1ec7t" (t\u1ea1o \u0111\u01a1n h\u00e0ng) ho\u1eb7c "T\u1eeb ch\u1ed1i".')
-    add_note(doc, 'H\u1ec7 th\u1ed1ng ph\u00e1t hi\u1ec7n phi\u1ebfu tr\u00f9ng l\u1eb7p qua m\u00e3 b\u0103m SHA-256.')
+    # ===== 5. PHONE SCAN =====
+    add_h2(doc, '5. Qu\u00e9t phi\u1ebfu qua \u0111i\u1ec7n tho\u1ea1i (Phone Scan)')
+    add_para(doc, 'Ch\u1ee9c n\u0103ng qu\u00e9t phi\u1ebfu OMR b\u1eb1ng camera \u0111i\u1ec7n tho\u1ea1i, kh\u00f4ng c\u1ea7n m\u00e1y qu\u00e9t chuy\u00ean d\u1ee5ng.', indent=0.5)
+    add_step(doc, 'B\u01b0\u1edbc 1: Truy c\u1eadp \u0111\u1ecba ch\u1ec9 qu\u00e9t phi\u1ebfu (v\u00ed d\u1ee5: http://192.168.1.100:3000/scan) tr\u00ean \u0111i\u1ec7n tho\u1ea1i.')
+    add_step(doc, 'B\u01b0\u1edbc 2: H\u1ec7 th\u1ed1ng m\u1edf camera thi\u1ebft b\u1ecb. \u0110\u1eb7t phi\u1ebfu OMR v\u00e0o khung h\u00ecnh.')
+    add_step(doc, 'B\u01b0\u1edbc 3: Click "Ch\u1ee5p" \u0111\u1ec3 ch\u1ee5p \u1ea3nh phi\u1ebfu. Xem l\u1ea1i \u1ea3nh, "Ch\u1ee5p l\u1ea1i" n\u1ebfu c\u1ea7n ho\u1eb7c "G\u1eedi" \u0111\u1ec3 x\u1eed l\u00fd.')
+    add_step(doc, 'B\u01b0\u1edbc 4: H\u1ec7 th\u1ed1ng x\u1eed l\u00fd: \u0111\u1ecdc m\u00e3 QR, nh\u1eadn d\u1ea1ng v\u00f9ng \u0111\u00e1nh d\u1ea5u, \u0111\u1ecdc \u00f4 s\u1ed1 l\u01b0\u1ee3ng, \u0111\u1ed1i chi\u1ebfu danh m\u1ee5c.')
+    add_step(doc, 'B\u01b0\u1edbc 5: K\u1ebft qu\u1ea3: "\u0110\u00e3 t\u1ea1o \u0111\u01a1n" (t\u1ef1 \u0111\u1ed9ng) / "C\u1ea7n xem x\u00e9t" (c\u00f3 c\u1ea3nh b\u00e1o) / "Kh\u00f4ng t\u00ecm th\u1ea5y".')
+    add_step(doc, 'B\u01b0\u1edbc 6: Click "Qu\u00e9t ti\u1ebfp" \u0111\u1ec3 qu\u00e9t phi\u1ebfu ti\u1ebfp theo.')
+    add_note(doc, 'Kh\u00f4ng c\u1ea7n \u0111\u0103ng nh\u1eadp. \u0110\u1ea3m b\u1ea3o \u00e1nh s\u00e1ng \u0111\u1ee7 v\u00e0 phi\u1ebfu kh\u00f4ng nh\u0103n.')
 
     # ===== 6. SCAN MONITOR =====
-    add_h2(doc, '6. Gi\u00e1m s\u00e1t qu\u00e9t phi\u1ebfu ')
-    add_step(doc, 'Ch\u1ecdn "Gi\u00e1m s\u00e1t qu\u00e9t phi\u1ebfu". H\u1ec7 th\u1ed1ng hi\u1ec3n th\u1ecb b\u1ea3ng \u0111i\u1ec1u khi\u1ec3n th\u1eddi gian th\u1ef1c:')
-    add_bullet(doc, 'S\u1ed1 phi\u1ebfu \u0111ang ch\u1edd (PENDING), \u0111ang x\u1eed l\u00fd (PROCESSING)')
-    add_bullet(doc, 'S\u1ed1 phi\u1ebfu \u0111\u00e3 duy\u1ec7t (APPROVED), c\u1ea7n ki\u1ec3m tra (C\u1ea7n x\u00e1c minh), b\u1ecb t\u1eeb ch\u1ed1i (REJECTED)')
-    add_bullet(doc, 'Danh s\u00e1ch phi\u1ebfu g\u1ea7n \u0111\u00e2y v\u1edbi tr\u1ea1ng th\u00e1i v\u00e0 th\u1eddi gian c\u1eadp nh\u1eadt')
+    add_h2(doc, '6. Gi\u00e1m s\u00e1t qu\u00e9t (Scan Monitor)')
+    add_step(doc, 'B\u01b0\u1edbc 1: Ch\u1ecdn "Gi\u00e1m s\u00e1t qu\u00e9t". H\u1ec7 th\u1ed1ng hi\u1ec3n th\u1ecb b\u1ea3ng \u0111i\u1ec1u khi\u1ec3n:')
+    add_bullet(doc, 'T\u1ed5ng l\u01b0\u1ee3t qu\u00e9t: S\u1ed1 l\u01b0\u1ee3t qu\u00e9t phi\u1ebfu qua \u0111i\u1ec7n tho\u1ea1i')
+    add_bullet(doc, '\u0110\u01a1n h\u00e0ng t\u1ea1o: S\u1ed1 \u0111\u01a1n h\u00e0ng \u0111\u01b0\u1ee3c t\u1ea1o t\u1eeb qu\u00e9t phi\u1ebfu')
+    add_bullet(doc, '\u0110\u01a1n \u0111\u00e3 thanh to\u00e1n: S\u1ed1 \u0111\u01a1n \u0111\u00e3 \u0111\u01b0\u1ee3c thanh to\u00e1n')
+    add_bullet(doc, 'T\u1ed5ng doanh thu: T\u1ed5ng gi\u00e1 tr\u1ecb \u0111\u01a1n h\u00e0ng t\u1eeb qu\u00e9t phi\u1ebfu')
+    add_step(doc, 'B\u01b0\u1edbc 2: B\u1ea3ng l\u1ecbch s\u1eed qu\u00e9t: m\u00e3 \u0111\u01a1n, ng\u00e0y ph\u1ee5c v\u1ee5, s\u1ed1 ti\u1ec1n, tr\u1ea1ng th\u00e1i, th\u1eddi gian.')
+    add_step(doc, 'B\u01b0\u1edbc 3: Click "M\u1edf qu\u00e9t \u0111i\u1ec7n tho\u1ea1i" \u0111\u1ec3 m\u1edf trang qu\u00e9t trong tab m\u1edbi.')
+    add_note(doc, 'D\u1eef li\u1ec7u t\u1ef1 \u0111\u1ed9ng l\u00e0m m\u1edbi m\u1ed7i 5 gi\u00e2y. C\u00f3 th\u1ec3 t\u1ea1m d\u1eebng/ti\u1ebfp t\u1ee5c.')
 
-    # ===== 7. SCAN UPLOAD =====
-    add_h2(doc, '7. T\u1ea3i phi\u1ebfu qu\u00e9t l\u00ean ')
-    add_step(doc, 'B\u01b0\u1edbc 1: Ch\u1ecdn "T\u1ea3i phi\u1ebfu qu\u00e9t". Click "Ch\u1ecdn file" ho\u1eb7c k\u00e9o th\u1ea3 file (JPG, PNG, PDF).')
-    add_step(doc, 'B\u01b0\u1edbc 2: Click "T\u1ea3i l\u00ean". H\u1ec7 th\u1ed1ng ki\u1ec3m tra tr\u00f9ng l\u1eb7p (SHA-256), t\u1ea1o phi\u1ebfu PENDING.')
-    add_step(doc, 'B\u01b0\u1edbc 3: Theo d\u00f5i ti\u1ebfn tr\u00ecnh t\u1ea1i "Gi\u00e1m s\u00e1t qu\u00e9t phi\u1ebfu".')
+    # ===== 7. AUDIT LOG =====
+    add_h2(doc, '7. Nh\u1eadt k\u00fd ho\u1ea1t \u0111\u1ed9ng (Audit Log)')
+    add_step(doc, 'B\u01b0\u1edbc 1: Ch\u1ecdn "Nh\u1eadt k\u00fd ho\u1ea1t \u0111\u1ed9ng". H\u1ec7 th\u1ed1ng hi\u1ec3n th\u1ecb danh s\u00e1ch ho\u1ea1t \u0111\u1ed9ng g\u1ea7n \u0111\u00e2y.')
+    add_step(doc, 'B\u01b0\u1edbc 2: M\u1ed7i b\u1ea3n ghi g\u1ed3m: th\u1eddi gian, c\u00e1n b\u1ed9, lo\u1ea1i thao t\u00e1c, \u0111\u1ed1i t\u01b0\u1ee3ng, chi ti\u1ebft thay \u0111\u1ed5i.')
+    add_step(doc, 'B\u01b0\u1edbc 3: S\u1eed d\u1ee5ng b\u1ed9 l\u1ecdc \u0111\u1ec3 t\u00ecm ki\u1ebfm theo th\u1eddi gian, c\u00e1n b\u1ed9, lo\u1ea1i thao t\u00e1c.')
+    add_note(doc, 'Nh\u1eadt k\u00fd kh\u00f4ng th\u1ec3 s\u1eeda/x\u00f3a (b\u1ea5t bi\u1ebfn). Ch\u1ec9 Qu\u1ea3n tr\u1ecb vi\u00ean c\u00f3 quy\u1ec1n xem.')
 
     # ===== 8. FORM PRINT =====
     add_h2(doc, '8. Qu\u1ea3n l\u00fd bi\u1ec3u m\u1eabu OMR ')
@@ -528,6 +534,13 @@ def main():
         'B\u01b0\u1edbc 4: X\u00e1c nh\u1eadn \u0111\u01a1n h\u00e0ng. H\u1ec7 th\u1ed1ng t\u1ea1o \u0111\u01a1n PENDING, '
         'ch\u1edd duy\u1ec7t t\u1ea1i Counter.')
 
+    # ===== 14. FINANCIAL REPORT =====
+    add_h2(doc, '14. B\u00e1o c\u00e1o t\u00e0i ch\u00ednh (Financial Report)')
+    add_step(doc, 'B\u01b0\u1edbc 1: Ch\u1ecdn "B\u00e1o c\u00e1o t\u00e0i ch\u00ednh". Ch\u1ecdn kho\u1ea3ng th\u1eddi gian c\u1ea7n b\u00e1o c\u00e1o.')
+    add_step(doc, 'B\u01b0\u1edbc 2: H\u1ec7 th\u1ed1ng hi\u1ec3n th\u1ecb: t\u1ed5ng doanh thu, ph\u00e2n t\u00edch theo ngu\u1ed3n \u0111\u1eb7t h\u00e0ng, ph\u01b0\u01a1ng th\u1ee9c thanh to\u00e1n.')
+    add_step(doc, 'B\u01b0\u1edbc 3: S\u1ed1 l\u01b0\u1ee3ng \u0111\u01a1n h\u00e0ng theo tr\u1ea1ng th\u00e1i.')
+    add_note(doc, 'Ch\u1ec9 Qu\u1ea3n tr\u1ecb vi\u00ean c\u00f3 quy\u1ec1n xem b\u00e1o c\u00e1o t\u00e0i ch\u00ednh.')
+
     # ===== IV. ELECTRON =====
     add_h1(doc, 'IV. \u1ee8ng d\u1ee5ng m\u00e1y t\u00ednh (Electron)')
     add_para(doc,
@@ -600,8 +613,8 @@ def main():
         add_table_row(t2, [txn, desc])
     doc.add_paragraph()
 
-    # C. Trang thai phieu quet
-    add_h3(doc, 'C. B\u1ea3ng tr\u1ea1ng th\u00e1i phi\u1ebfu qu\u00e9t')
+    # C. Trang thai ket qua quet phieu
+    add_h3(doc, 'C. B\u1ea3ng tr\u1ea1ng th\u00e1i k\u1ebft qu\u1ea3 qu\u00e9t phi\u1ebfu')
     t3 = doc.add_table(rows=1, cols=2)
     t3.style = 'Table Grid'
     t3.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -612,11 +625,9 @@ def main():
     add_run_tnr(hdr[1].paragraphs[0], 'M\u00f4 t\u1ea3', bold=True, size=11)
 
     for scan, desc in [
-        ('\u0110ang ch\u1edd', '\u0110ang ch\u1edd x\u1eed l\u00fd'),
-        ('\u0110ang x\u1eed l\u00fd', '\u0110ang nh\u1eadn d\u1ea1ng (OCR)'),
-        ('C\u1ea7n x\u00e1c minh', 'C\u1ea7n x\u00e1c minh th\u1ee7 c\u00f4ng (\u0111\u1ed9 tin c\u1eady th\u1ea5p)'),
-        ('\u0110\u00e3 ph\u00ea duy\u1ec7t', '\u0110\u01a1n h\u00e0ng \u0111\u01b0\u1ee3c t\u1ea1o t\u1ef1 \u0111\u1ed9ng'),
-        ('\u0110\u00e3 t\u1eeb ch\u1ed1i', 'Phi\u1ebfu b\u1ecb t\u1eeb ch\u1ed1i'),
+        ('\u0110\u00e3 t\u1ea1o \u0111\u01a1n', '\u0110\u01a1n h\u00e0ng \u0111\u01b0\u1ee3c t\u1ea1o t\u1ef1 \u0111\u1ed9ng (\u0111\u1ed9 tin c\u1eady cao)'),
+        ('C\u1ea7n xem x\u00e9t', 'C\u1ea7n ki\u1ec3m tra l\u1ea1i (c\u00f3 c\u1ea3nh b\u00e1o ho\u1eb7c \u0111\u1ed9 tin c\u1eady th\u1ea5p)'),
+        ('Kh\u00f4ng t\u00ecm th\u1ea5y', 'Kh\u00f4ng nh\u1eadn d\u1ea1ng \u0111\u01b0\u1ee3c m\u1eb7t h\u00e0ng n\u00e0o'),
     ]:
         add_table_row(t3, [scan, desc])
 

@@ -1,10 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { OmrFormTemplate, OmrFormMode } from '../omr-forms/omr-form-template.entity';
+import { Order, OrderStatus, PaymentStatus } from '../orders/order.entity';
 import { ThresholdConfigService } from '../config/threshold-config.service';
 import { MenuService } from '../menu/menu.service';
 import { OrdersService } from '../orders/orders.service';
-import { tomorrowInDeployTz } from '../common/today-in-tz';
+import { todayInDeployTz, tomorrowInDeployTz } from '../common/today-in-tz';
 import { pageLayout, registrationMarks, fullListGrid } from '../omr/local-form-layout';
 import { processImage, findRegistrationMarks } from './image-processor';
 import { readFormQr } from './qr-reader';
@@ -18,6 +19,25 @@ export interface ScanProcessResult {
   orderId: string | null;
   status: 'created' | 'review_required' | 'no_items';
   warnings: string[];
+}
+
+/** A single scan history entry (an order created via the scanner source). */
+export interface ScanHistoryItem {
+  id: string;
+  serviceDate: string;
+  userId: string;
+  totalAmount: number;
+  status: string;
+  paymentStatus: string;
+  createdAt: string;
+}
+
+/** Aggregate KPIs for scanner-originated orders. */
+export interface ScanStats {
+  totalScans: number;
+  ordersCreated: number;
+  ordersPaid: number;
+  totalRevenue: number;
 }
 
 @Injectable()
@@ -214,5 +234,68 @@ export class ScanLocalService {
     }
 
     return { formToken, mode, items: enrichedItems, orderId, status: 'created', warnings };
+  }
+
+  /**
+   * Returns recent orders created via the scanner source within a date range.
+   *
+   * @param dateFrom Inclusive start date (YYYY-MM-DD). Defaults to today.
+   * @param dateTo   Inclusive end date (YYYY-MM-DD). Defaults to today.
+   * @returns Array of scan history items ordered newest-first.
+   */
+  async getHistory(dateFrom?: string, dateTo?: string): Promise<ScanHistoryItem[]> {
+    const from = dateFrom ?? todayInDeployTz();
+    const to = dateTo ?? todayInDeployTz();
+
+    const orders = await this.dataSource
+      .getRepository(Order)
+      .createQueryBuilder('o')
+      .where('o.source IN (:...sources)', { sources: ['scanner'] })
+      .andWhere('o.service_date >= :from', { from })
+      .andWhere('o.service_date <= :to', { to })
+      .orderBy('o.created_at', 'DESC')
+      .limit(100)
+      .getMany();
+
+    return orders.map((o) => ({
+      id: o.id,
+      serviceDate: o.serviceDate,
+      userId: o.userId,
+      totalAmount: o.totalAmount,
+      status: o.status,
+      paymentStatus: o.paymentStatus,
+      createdAt: o.createdAt.toISOString(),
+    }));
+  }
+
+  /**
+   * Returns aggregate KPIs for scanner-originated orders within a date range.
+   *
+   * @param dateFrom Inclusive start date (YYYY-MM-DD). Defaults to today.
+   * @param dateTo   Inclusive end date (YYYY-MM-DD). Defaults to today.
+   * @returns Aggregate scan statistics.
+   */
+  async getStats(dateFrom?: string, dateTo?: string): Promise<ScanStats> {
+    const from = dateFrom ?? todayInDeployTz();
+    const to = dateTo ?? todayInDeployTz();
+
+    const orders = await this.dataSource
+      .getRepository(Order)
+      .createQueryBuilder('o')
+      .where('o.source IN (:...sources)', { sources: ['scanner'] })
+      .andWhere('o.service_date >= :from', { from })
+      .andWhere('o.service_date <= :to', { to })
+      .getMany();
+
+    const active = orders.filter((o) => o.status === OrderStatus.ACTIVE);
+    const paid = active.filter((o) => o.paymentStatus === PaymentStatus.PAID);
+    const revenue = paid.reduce((sum, o) => sum + o.totalAmount, 0);
+
+    return {
+      totalScans: orders.length,
+      ordersCreated: active.length,
+      ordersPaid: paid.length,
+      totalRevenue: revenue,
+    };
   }
 }

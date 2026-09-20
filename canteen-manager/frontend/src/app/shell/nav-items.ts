@@ -23,6 +23,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'orders',          path: '/orders',          icon: '☰' },
       { id: 'kitchen-summary', path: '/kitchen-summary', icon: '▥' },
       { id: 'counter',         path: '/counter',         icon: '₫', roles: ['cashier', 'admin'] },
+      { id: 'scan-monitor',    path: '/scan-monitor',   icon: '⎙' },
     ],
   },
   {

@@ -14,6 +14,7 @@ import { PaymentConfigPage } from '@/features/payment-config/payment-config-page
 import { VouchersPage } from '@/features/vouchers/vouchers-page';
 import { OperatorsPage } from '@/features/operators/operators-page';
 import { PhoneScanPage } from '@/features/phone-scan/phone-scan-page';
+import { ScanMonitorPage } from '@/features/scan-monitor/scan-monitor-page';
 import { FormPrintPage } from '@/features/form-print/form-print-page';
 import { DataSyncPage } from '@/features/data-sync/data-sync-page';
 import { AuditLogPage } from '@/features/audit-log/audit-log-page';
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: 'dashboard',       element: <DashboardPage /> },
           { path: 'orders',          element: <OrdersPage /> },
+          { path: 'scan-monitor',   element: <ScanMonitorPage /> },
           { path: 'kitchen-summary', element: <KitchenSummaryPage /> },
           { path: 'prisoner',        element: <UsersPage /> },
           // Back-compat: old /users path redirects to the renamed /prisoner screen.

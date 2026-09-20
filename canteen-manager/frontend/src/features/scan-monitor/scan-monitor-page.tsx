@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { scans } from '@/lib/api';
+import { scanLocal } from '@/lib/api';
 import { useQuery } from '@/lib/use-query';
 import { formatTime } from '@/lib/format';
 import {
-  Banner,
   Button,
   Card,
   CardHead,
-  ConfidenceChip,
   EmptyRow,
   Kpi,
   PageHeader,
@@ -21,101 +19,50 @@ import {
   Th,
   THead,
   Tr,
-  useToast,
+  Banner,
 } from '@/ui';
-import { sheetStatusDisplay } from '@/lib/status-display';
 import { DateRangePicker, tomorrowRange, type DateRange } from '@/features/_shared/date-range-picker';
-import { ScanStatusLiveRegion } from './scan-status-live-region';
-import type { Sheet } from '@/lib/types';
-import { AssignedZoneScope } from '@/features/_shared/assigned-zone-scope';
-import { buildVerifyUrl } from '@/features/verify/verify-route';
+import type { ScanHistoryItem } from '@/lib/api/scan-local';
 
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 5000;
 
+/**
+ * Displays a live-updating monitor of phone-scan activity.
+ * Shows KPIs and a table of orders created via the scanner pipeline.
+ */
 export function ScanMonitorPage() {
   const [range, setRange] = useState<DateRange>(tomorrowRange);
   const [paused, setPaused] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const targetId = searchParams.get('sheet');
-  const [targetSheet, setTargetSheet] = useState<Sheet | null>(null);
-  const focusedTargetRef = useRef<string | null>(null);
-  const navigate = useNavigate();
   const { t } = useTranslation('scan');
   const { t: tCommon } = useTranslation('common');
-  const { toast } = useToast();
 
-  const { data, error, loading, refetch } = useQuery(
-    () => scans.listScans({ dateFrom: range.dateFrom, dateTo: range.dateTo }),
+  const { data: history, error, loading, refetch } = useQuery(
+    () => scanLocal.getHistory({ dateFrom: range.dateFrom, dateTo: range.dateTo }),
     [range.dateFrom, range.dateTo],
   );
 
-  const kpiQuery = useQuery(
-    () => scans.getKpi({ dateFrom: range.dateFrom, dateTo: range.dateTo }),
+  const statsQuery = useQuery(
+    () => scanLocal.getStats({ dateFrom: range.dateFrom, dateTo: range.dateTo }),
     [range.dateFrom, range.dateTo],
   );
 
-  useEffect(() => {
-    if (!targetId) {
-      setTargetSheet(null);
-      focusedTargetRef.current = null;
-      return;
-    }
-    let cancelled = false;
-    void scans.getScan(targetId).then((sheet) => {
-      if (cancelled) return;
-      setTargetSheet(sheet);
-      setRange({ dateFrom: sheet.serviceDate, dateTo: sheet.serviceDate });
-    }).catch(() => setTargetSheet(null));
-    return () => { cancelled = true; };
-  }, [targetId]);
-
-  // Auto-poll every 2 s unless paused.
+  // Auto-poll unless paused.
   const refetchRef = useRef(refetch);
   refetchRef.current = refetch;
-  const kpiRefetchRef = useRef(kpiQuery.refetch);
-  kpiRefetchRef.current = kpiQuery.refetch;
+  const statsRefetchRef = useRef(statsQuery.refetch);
+  statsRefetchRef.current = statsQuery.refetch;
 
   useEffect(() => {
     if (paused) return;
     const id = window.setInterval(() => {
       refetchRef.current();
-      kpiRefetchRef.current();
+      statsRefetchRef.current();
     }, POLL_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [paused]);
 
-  const sheets = data ?? [];
-  const kpi = kpiQuery.data;
-  const flaggedCount = kpi?.flagged ?? sheets.filter((s) => s.status === 'flagged').length;
-
-  useEffect(() => {
-    if (!targetId || focusedTargetRef.current === targetId || !sheets.some((sheet) => sheet.id === targetId)) return;
-    const row = document.getElementById(`scan-row-${targetId}`);
-    row?.scrollIntoView?.({ block: 'center' });
-    row?.focus();
-    focusedTargetRef.current = targetId;
-  }, [sheets, targetId]);
-
-  // Demo helper: fabricate a flagged OMR sheet dated to today and refresh the
-  // feed so it appears immediately (no scanner required).
-  async function handleGenerate() {
-    if (generating) return;
-    setGenerating(true);
-    try {
-      await scans.generateDemoRecord();
-      refetchRef.current();
-      kpiRefetchRef.current();
-      toast({ tone: 'success', message: t('toastRecordGenerated') });
-    } catch (err) {
-      toast({
-        tone: 'danger',
-        message: err instanceof Error ? err.message : t('toastRecordFailed'),
-      });
-    } finally {
-      setGenerating(false);
-    }
-  }
+  const items: ScanHistoryItem[] = history ?? [];
+  const stats = statsQuery.data;
 
   return (
     <>
@@ -132,70 +79,35 @@ export function ScanMonitorPage() {
             >
               {paused ? t('resumeFeed') : t('pauseFeed')}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerate}
-              disabled={generating}
-              loading={generating}
-            >
-              {t('generateRecord')}
-            </Button>
-            {flaggedCount > 0 && (
-              <Button variant="primary" size="sm" onClick={() => navigate('/verify')}>
-                {t('verifyFlagged', { count: flaggedCount })}
-              </Button>
-            )}
           </div>
         }
       />
-      <AssignedZoneScope />
 
+      {/* Scan action card */}
       <Card className="mb-4 flex flex-wrap items-center justify-between gap-4 border-primary/30 bg-accent-subtle">
         <div>
-          <p className="font-semibold">{t('uploadScans')}</p>
-          <p className="mt-1 text-sm text-muted-fg">{t('uploadScansHint')}</p>
+          <p className="font-semibold">{t('openPhoneScan')}</p>
+          <p className="mt-1 text-sm text-muted-fg">{t('openPhoneScanHint')}</p>
         </div>
         <Link
-          to="/scan-upload"
+          to="/scan"
+          target="_blank"
           className="inline-flex min-h-11 items-center rounded-md bg-primary px-5 font-semibold text-primary-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {t('uploadScans')}
+          {t('openPhoneScan')}
         </Link>
       </Card>
 
-      {targetSheet && (
-        <Banner tone="info" className="mb-4">
-          <span>{t('showingSheet', { sheetId: targetSheet.sheetId })}</span>
-          <Button variant="ghost" size="sm" onClick={() => setSearchParams({})}>{t('clearShowingSheet')}</Button>
-        </Banner>
-      )}
-
-      {/* Live status announcement for assistive tech */}
-      <ScanStatusLiveRegion
-        message={
-          kpi
-            ? t('statusAnnouncement', {
-                flagged: kpi.flagged,
-                ready: kpi.ready,
-                needsReview: kpi.needsReview,
-                rejected: kpi.rejected,
-              })
-            : ''
-        }
-      />
-
       {/* KPI strip */}
-      {kpi && (
+      {stats && (
         <div
           className="grid gap-4 mb-4"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}
         >
-          <Card><Kpi label={t('kpiPendingEvidence')} value={<span className="text-info">{kpi.pending + kpi.processing}</span>} /></Card>
-          <Card><Kpi label={t('kpiReady')} value={<span className="text-success">{kpi.ready}</span>} /></Card>
-          <Card><Kpi label={t('kpiNeedsReview')} value={<span className="text-warning">{kpi.needsReview}</span>} /></Card>
-          <Card><Kpi label={t('kpiIntegrityFault')} value={<span className="text-danger">{kpi.integrityFault}</span>} /></Card>
-          <Card><Kpi label={t('kpiRejected')} value={<span className="text-danger">{kpi.rejected}</span>} /></Card>
+          <Card><Kpi label={t('kpiTotalScans')} value={<span className="text-info">{stats.totalScans}</span>} /></Card>
+          <Card><Kpi label={t('kpiOrdersCreated')} value={<span className="text-success">{stats.ordersCreated}</span>} /></Card>
+          <Card><Kpi label={t('kpiOrdersPaid')} value={<span className="text-success">{stats.ordersPaid}</span>} /></Card>
+          <Card><Kpi label={t('kpiTotalRevenue')} value={<span className="text-primary">{stats.totalRevenue.toLocaleString()}</span>} /></Card>
         </div>
       )}
 
@@ -207,7 +119,7 @@ export function ScanMonitorPage() {
 
       <Card className="p-0">
         <CardHead
-          title={t('incomingSheets')}
+          title={t('scanHistory')}
           className="px-4 pt-4"
           actions={
             <span className="text-[13px] text-muted-fg">
@@ -216,7 +128,7 @@ export function ScanMonitorPage() {
           }
         />
 
-        {loading && !data && (
+        {loading && !history && (
           <div className="flex justify-center py-8">
             <Spinner size={24} />
           </div>
@@ -225,73 +137,46 @@ export function ScanMonitorPage() {
         <Table>
           <THead>
             <Tr>
-              <Th>{t('colSheetId')}</Th>
-              <Th>{t('colBatch')}</Th>
-              <Th>{t('colSource')}</Th>
-              <Th numeric>{t('colAvgConf')}</Th>
+              <Th>{t('colOrderId')}</Th>
+              <Th>{t('colServiceDate')}</Th>
+              <Th numeric>{t('colAmount')}</Th>
               <Th>{t('colStatus')}</Th>
+              <Th>{t('colPayment')}</Th>
               <Th>{t('colTime')}</Th>
-              <Th></Th>
             </Tr>
           </THead>
           <TBody>
-            {sheets.length === 0 && !loading ? (
-              <EmptyRow colSpan={7}>{t('noSheetsYet')}</EmptyRow>
+            {items.length === 0 && !loading ? (
+              <EmptyRow colSpan={6}>{t('noScansYet')}</EmptyRow>
             ) : (
-              sheets.map((sheet) => {
-                const display = sheetStatusDisplay(sheet.status);
-                const isFlagged = sheet.status === 'flagged';
-                return (
-                  <Tr
-                    key={sheet.id}
-                    id={`scan-row-${sheet.id}`}
-                    tabIndex={sheet.id === targetId ? -1 : undefined}
-                    selected={sheet.id === targetId}
-                  >
-                    <Td>
-                      <span className="font-mono text-sm">{sheet.sheetId}</span>
-                    </Td>
-                    <Td>
-                      <span className="font-mono text-sm">{sheet.batch}</span>
-                    </Td>
-                    <Td>
-                      <span className="rounded-full bg-accent-subtle px-2 py-1 text-xs font-semibold">
-                        {sheet.source === 'scanner'
-                          ? t(sheet.scannerReviewState === 'ready' ? 'sourceScannerReady' : 'sourceScannerReview')
-                          : t('sourceOmr')}
-                      </span>
-                    </Td>
-                    <Td numeric>
-                      {sheet.avgConfidence != null ? (
-                        <ConfidenceChip value={sheet.avgConfidence} />
-                      ) : (
-                        <span className="text-muted-fg text-xs">—</span>
-                      )}
-                    </Td>
-                    <Td>
-                      <StatusChip tone={display.tone} label={tCommon(display.key)} dot />
-                    </Td>
-                    <Td>
-                      <span className="font-mono text-xs text-muted-fg">
-                        {sheet.processedAt
-                          ? formatTime(sheet.processedAt, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-                          : '—'}
-                      </span>
-                    </Td>
-                    <Td>
-                      {isFlagged && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => navigate(buildVerifyUrl(sheet.id, range))}
-                        >
-                          {t('verifyButton')}
-                        </Button>
-                      )}
-                    </Td>
-                  </Tr>
-                );
-              })
+              items.map((item) => (
+                <Tr key={item.id}>
+                  <Td>
+                    <span className="font-mono text-sm">{item.id.slice(0, 8)}</span>
+                  </Td>
+                  <Td>{item.serviceDate}</Td>
+                  <Td numeric>{item.totalAmount.toLocaleString()}</Td>
+                  <Td>
+                    <StatusChip
+                      tone={item.status === 'active' ? 'success' : item.status === 'superseded' ? 'warning' : 'danger'}
+                      label={tCommon(`status.order.${item.status}`)}
+                      dot
+                    />
+                  </Td>
+                  <Td>
+                    <StatusChip
+                      tone={item.paymentStatus === 'paid' ? 'success' : 'warning'}
+                      label={item.paymentStatus === 'paid' ? t('paid') : t('unpaid')}
+                      dot
+                    />
+                  </Td>
+                  <Td>
+                    <span className="font-mono text-xs text-muted-fg">
+                      {formatTime(item.createdAt, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                    </span>
+                  </Td>
+                </Tr>
+              ))
             )}
           </TBody>
         </Table>

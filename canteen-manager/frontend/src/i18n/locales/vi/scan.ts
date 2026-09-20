@@ -1,51 +1,39 @@
 const scan = {
   // Page header
   pageTitle: 'Giám sát quét',
-  pageSubtitle: 'Luồng phiếu trực tiếp · mới nhất trước',
+  pageSubtitle: 'Hoạt động quét điện thoại · mới nhất trước',
 
   // Actions
   resumeFeed: 'Tiếp tục luồng',
   pauseFeed: 'Tạm dừng luồng',
-  verifyFlagged: 'Xét duyệt cần xử lý ({{count}})',
-  generateRecord: 'Tạo bản ghi OMR mẫu',
-  uploadScans: 'Tải ảnh quét thật',
-  uploadScansHint: 'Chọn một hoặc nhiều ảnh JPG/PNG thật và gửi qua luồng tiếp nhận chính thức.',
-  showingSheet: 'Đang hiển thị phiếu {{sheetId}}',
-  clearShowingSheet: 'Bỏ chọn',
-  toastRecordGenerated: 'Đã tạo bản ghi OMR · vào hàng đợi xét duyệt',
-  toastRecordFailed: 'Không thể tạo bản ghi OMR',
+  openPhoneScan: 'Mở quét điện thoại',
+  openPhoneScanHint: 'Mở camera điện thoại để quét phiếu OMR trong tab mới.',
 
   // KPI labels
-  kpiPendingEvidence: 'Chờ bằng chứng',
-  kpiReady: 'Sẵn sàng xác nhận',
-  kpiNeedsReview: 'Cần xét duyệt',
-  kpiIntegrityFault: 'Lỗi toàn vẹn',
-  kpiRejected: 'Từ chối',
+  kpiTotalScans: 'Tổng lượt quét',
+  kpiOrdersCreated: 'Đơn hàng tạo',
+  kpiOrdersPaid: 'Đơn đã thanh toán',
+  kpiTotalRevenue: 'Tổng doanh thu',
 
   // Table card
-  incomingSheets: 'Phiếu đến',
+  scanHistory: 'Lịch sử quét',
   feedPaused: '⏸ đã tạm dừng',
   feedAutoRefresh: '⟳ tự động làm mới',
 
   // Table columns
-  colSheetId: 'Mã phiếu',
-  colBatch: 'Lô',
-  colSource: 'Nguồn',
-  colAvgConf: 'Độ tin TB.',
+  colOrderId: 'Mã đơn',
+  colServiceDate: 'Ngày phục vụ',
+  colAmount: 'Số tiền',
   colStatus: 'Trạng thái',
+  colPayment: 'Thanh toán',
   colTime: 'Thời gian',
 
   // Table body
-  noSheetsYet: 'Chưa có phiếu',
+  noScansYet: 'Chưa có lượt quét',
 
-  // Row action
-  verifyButton: 'Xét duyệt',
-  sourceOmr: 'OMR cũ',
-  sourceScannerReady: 'Máy quét · sẵn sàng',
-  sourceScannerReview: 'Máy quét · cần xem',
-
-  // Live region announcement (interpolated)
-  statusAnnouncement: '{{ready}} phiếu sẵn sàng xác nhận, {{needsReview}} phiếu cần xét duyệt, {{rejected}} từ chối',
+  // Payment status
+  paid: 'Đã thanh toán',
+  unpaid: 'Chưa thanh toán',
 } as const;
 
 export default scan;
